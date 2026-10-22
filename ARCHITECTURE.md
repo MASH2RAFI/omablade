@@ -195,7 +195,7 @@ startup layout; the CLI retries for up to 10 seconds. While the first-run
 Trash cleanup question is unanswered, verbs that would close the left blade
 (`close`, `toggle`, `closeBlade`, `toggleBlade`, `toggleBladeFocus`, `focusLeft`)
 answer `consent-pending` and the CLI reports how to answer it, instead of
-replying `closed` for a blade the question reopens at once. `BladeHost.placeDefaults` runs `lib/DefaultPlacement.js` after
+replying `closed` for a blade the question reopens at once. `PreferencesController` saves Never on the first start without an answer, so the question only appears when that save fails. `BladeHost.placeDefaults` runs `lib/DefaultPlacement.js` after
 every registry rebuild and every applied layout: it appends a newly discovered
 `defaultPlacement: "beside-files"` module to the Files tab's slot and records
 it in `defaultPlacements` so it is placed only once. Slots render through a Repeater over `slots.length`, not over the
@@ -601,7 +601,7 @@ propertyIcons:              true       glyphs in the metric columns
 confirmTrash:               true       ask before moving to Trash
 scrollMarks:                true       Git status marks on the tree scroll ruler
 folderColorScope:           icon       what a folder color paints: icon, name, or row
-trashRetentionDays:         7          days before Trash entries are pruned; 0 keeps them forever
+trashRetentionDays:         0          days before Trash entries are pruned; 0 keeps them forever; first start saves 0
 gitStatusPollIntervalMs:     5000       Git fallback base in ms; 6x while inotify is healthy, 0 disables it
 dropModifier:               space      drop-wheel hold key: space, alt, ctrl, shift, or meta
 monitorMode:                active     invocation monitor; all mirrors, locked uses the saved monitorLock

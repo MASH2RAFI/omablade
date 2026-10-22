@@ -385,10 +385,13 @@ the bin; direct helper restores retain idempotent completion records for one wee
 Pre-fix payloads without a stored recovery record are not promoted into trusted
 undo. They remain listed and can be purged, but cannot be replayed safely.
 
-The first start without a recorded retention answer opens a modal on the left
-Omablade blade, opening it if needed and using its own window when undocked:
-“Should Omablade automatically empty the trash?” Never is selected initially.
-Never, 1 day, 7 days, 30 days and 90 days require explicit Confirm. Existing implicit
+The first start without a recorded retention answer saves Never, so automatic
+cleanup stays off, and tells the user where to choose a period. A period is never
+chosen on the user's behalf, because cleanup permanently deletes shared Trash.
+Only if saving Never fails does a modal open on the left Omablade blade, opening
+it if needed and using its own window when undocked: “Should Omablade
+automatically empty the trash?” Never is selected initially. Never, 1 day,
+7 days, 30 days and 90 days require explicit Confirm. Existing implicit
 seven-day defaults do not count as consent. Until a choice is durably saved,
 automatic cleanup is off. The choice applies to shared desktop Trash and artifact
 bins, without per-item ownership markers. It can be changed in settings.

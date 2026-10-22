@@ -12,20 +12,22 @@ Item {
   property int pendingTrashDays: 0
   property int generation: 0
   property string requestId: ""
+  property bool defaultTried: false
+  property bool adoptingDefault: false
+  readonly property string defaultNotice: "Automatic Trash cleanup is off. Choose how long to keep Trash in Settings → Files."
   readonly property bool trashAnswered: ready && typeof settings.trashRetentionDays === "number"
   readonly property int trashRetentionDays: trashAnswered ? settings.trashRetentionDays : 0
   readonly property bool trashCleanupConsent: trashAnswered && trashRetentionDays > 0
-  readonly property bool questionPending: ready && !trashAnswered
+  readonly property bool questionPending: ready && !trashAnswered && !adoptingDefault
   readonly property bool agentManagement: ready && settings.agentManagement === true
 
   function showPendingConsent() {
-    if (!ready || trashAnswered || !service.bladeHost || !service.bladeHost.layoutReady) return
+    if (!questionPending || !service.bladeHost || !service.bladeHost.layoutReady) return
     var host = service.bladeHost
     if (host.pendingOpenEdges) return
     if (!host.bladeFor("left").open) host.setOpen("left", true)
   }
-  onTrashAnsweredChanged: Qt.callLater(showPendingConsent)
-  onReadyChanged: Qt.callLater(showPendingConsent)
+  onQuestionPendingChanged: Qt.callLater(showPendingConsent)
   Connections {
     target: controller.service.bladeHost
     function onLayoutReadyChanged() { controller.showPendingConsent() }
@@ -49,6 +51,7 @@ Item {
     if (!response || response.ok !== true || !response.settings || typeof response.settings.trashRetentionDays !== "number")
       pendingTrashDays = 0
     if (!response || response.ok !== true || !response.settings) {
+      adoptingDefault = false
       settings = ({})
       error = String(response && response.error || "Preferences could not be read")
       ready = true
@@ -59,6 +62,13 @@ Item {
     newerWriter = response.newerWriter === true
     ready = true
     error = ""
+    if (adoptingDefault) {
+      adoptingDefault = false
+      if (trashAnswered) service.operationNotice = defaultNotice
+    } else if (!trashAnswered && !defaultTried) {
+      defaultTried = true
+      adoptingDefault = change(["--trash-retention-days", "0"])
+    }
     return true
   }
 

@@ -15,7 +15,7 @@ FocusScope {
     { days: 30, label: "30 days" }, { days: 90, label: "90 days" }
   ]
   property int keyboardIndex: 0
-  visible: presented && preferences.ready && !preferences.trashAnswered
+  visible: presented && preferences.questionPending
   z: 100
   onVisibleChanged: if (visible) forceActiveFocus()
 

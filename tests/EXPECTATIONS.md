@@ -91,12 +91,12 @@ Ids never get reused. When behaviour changes, edit the entry in place.
     Omablade, nothing is changed. Settings → Desktop integration shows a
     Hyprland bindings switch in a plugin too; turning it off restores my file
     exactly and Omablade never re-adds the keys on its own.
-16. **E-01-16** On a fresh install the left blade opens with the Trash cleanup
-    question. While it waits for my answer, `Super+Shift+F` moves my keyboard to the
-    question instead of doing nothing, so I can answer with the arrow keys and
-    `Enter`. Pressing `Super+Shift+F` again while I am on the question tells me the
-    blade stays open until I answer; `Super+Shift+N` and the other Omablade
-    keys work as usual the whole time.
+16. **E-01-16** On a fresh install nothing stands between me and the blade
+    keys: `Super+Shift+F` and `Super+Shift+N` open and close the blades from
+    the first press. Omablade turns automatic Trash cleanup off and says so,
+    pointing me to Settings → Files. Only if that cannot be saved does the
+    Trash cleanup question appear; then `Super+Shift+F` moves my keyboard to it,
+    and pressing it again tells me the blade stays open until I answer.
 
 ## 2. The tree draws what is on disk
 
@@ -1189,11 +1189,14 @@ authority routing and an isolated fixture strategy for the sealed payload.
 The fixture journals originals and retained scenario data; it does not isolate
 Trash stores on other mounts.
 
-- **E-36-01** A fresh install and an existing install without a recorded answer ask
+- **E-36-01** A fresh install and an existing install without a recorded answer
+  save Never on their first start, without asking, and tell me automatic Trash
+  cleanup is off and where to change it. Nothing is ever pruned until I choose a
+  period in Settings. If Never cannot be saved, they ask
   “Should Omablade automatically empty the trash?” Never, 1 day, 7 days, 30 days
   and 90 days appear as a list with Never selected. Escape does nothing; Confirm
   is the only completion action, and confirming the initial choice disables pruning.
-- **E-36-02** The question blocks Omablade only. I can use another app and return
+- **E-36-02** When it appears, the question blocks Omablade only. I can use another app and return
   to the same question. It explains shared Trash, permanent deletion and where to
   change the setting. No automatic pruning runs before Confirm is saved.
   It uses Omablade's font, with the full Trash icon beside the heading, and appears

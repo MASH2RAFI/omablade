@@ -21,6 +21,7 @@ TestCase {
     property bool backendReady: false
     property var bladeHost: host
     property var callback: null
+    property string operationNotice: ""
     function backendRequest(command, args, generation, fn) {
       calls.push({ command: command, arguments: args })
       callback = fn
@@ -36,17 +37,41 @@ TestCase {
     preferences.settings = ({})
     preferences.pendingTrashDays = 0
     preferences.requestId = ""
+    preferences.defaultTried = false
+    preferences.adoptingDefault = false
+    service.operationNotice = ""
     host.layoutReady = false
     host.pendingOpenEdges = null
     host.opened = false
     host.rightOpened = false
     calls = []
   }
-  function test_no_authority_until_answer_is_saved() {
+  function failDefault() {
     preferences.receive({ok:true, settings:{version:1, trashRetentionDays:null}})
+    service.callback({ok:false, error:"read-only settings"})
+  }
+  function test_first_start_turns_cleanup_off_without_asking() {
+    preferences.receive({ok:true, settings:{version:1, trashRetentionDays:null}})
+    compare(calls.length, 1)
+    compare(calls[0].command, "preferences-set")
+    compare(calls[0].arguments.join(" "), "--trash-retention-days 0")
+    verify(!preferences.questionPending, "the question never shows while the default is saved")
+    verify(!preferences.trashCleanupConsent)
+    service.callback({ok:true, settings:{version:1, trashRetentionDays:0}})
+    verify(preferences.trashAnswered)
+    verify(!preferences.trashCleanupConsent, "nothing is ever pruned by the default")
+    verify(!preferences.questionPending)
+    verify(service.operationNotice.indexOf("Settings") >= 0)
+    preferences.receive({ok:true, settings:{version:1, trashRetentionDays:null}})
+    compare(calls.length, 1, "the default is saved once per start")
+  }
+  function test_no_authority_until_answer_is_saved() {
+    failDefault()
     compare(preferences.pendingTrashDays, 0)
     verify(!preferences.trashAnswered)
     verify(!preferences.trashCleanupConsent)
+    verify(preferences.questionPending)
+    compare(service.operationNotice, "")
     preferences.pendingTrashDays = 7
     verify(preferences.setTrashRetentionDays(7, true))
     verify(!preferences.trashCleanupConsent)
@@ -77,8 +102,16 @@ TestCase {
     verify(!preferences.trashAnswered)
     verify(!preferences.trashCleanupConsent)
   }
-  function test_unanswered_install_opens_a_blade_after_layout_loads() {
+  function test_saved_default_never_opens_a_blade() {
+    host.layoutReady = true
     preferences.receive({ok:true, settings:{version:1, trashRetentionDays:null}})
+    service.callback({ok:true, settings:{version:1, trashRetentionDays:0}})
+    preferences.showPendingConsent()
+    wait(20)
+    verify(!host.opened)
+  }
+  function test_unanswered_install_opens_a_blade_after_layout_loads() {
+    failDefault()
     preferences.showPendingConsent()
     verify(!host.opened)
     host.layoutReady = true
@@ -95,7 +128,7 @@ TestCase {
   function test_right_only_install_opens_left_for_the_question() {
     host.rightOpened = true
     host.layoutReady = true
-    preferences.receive({ok:true, settings:{version:1, trashRetentionDays:null}})
+    failDefault()
     preferences.showPendingConsent()
     verify(host.opened)
     verify(host.rightOpened)
@@ -103,7 +136,7 @@ TestCase {
   function test_question_waits_until_saved_open_state_is_applied() {
     host.pendingOpenEdges = {left:false, right:true}
     host.layoutReady = true
-    preferences.receive({ok:true, settings:{version:1, trashRetentionDays:null}})
+    failDefault()
     preferences.showPendingConsent()
     verify(!host.opened)
     host.pendingOpenEdges = null
