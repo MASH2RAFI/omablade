@@ -1,0 +1,228 @@
+use omablade::module_helpers::{CoreRoute, canonical_route};
+use serde_json::{Value, json};
+use std::fs;
+use std::os::unix::fs::PermissionsExt;
+use std::process::Command;
+
+struct Fixture {
+    root: tempfile::TempDir,
+}
+
+impl Fixture {
+    fn new() -> Self {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path();
+        fs::write(path.join("manifest.json"), "{}").unwrap();
+        fs::create_dir(path.join("app")).unwrap();
+        fs::write(path.join("app/shell.qml"), "").unwrap();
+        fs::create_dir(path.join("scripts")).unwrap();
+        let registry = path.join("scripts/omarchy");
+        fs::write(
+            &registry,
+            "#!/usr/bin/env bash\nset -eu\ntouch \"$OMABLADE_APP_ROOT/registry-called\"\nexit 1\n",
+        )
+        .unwrap();
+        fs::set_permissions(registry, fs::Permissions::from_mode(0o700)).unwrap();
+        Self { root }
+    }
+
+    fn run(
+        &self,
+        provider: &str,
+        directory: &str,
+        helper: &str,
+        method: &str,
+        write: bool,
+    ) -> Value {
+        let output = Command::new(
+            std::env::var_os("OMABLADE_BINARY")
+                .unwrap_or_else(|| env!("CARGO_BIN_EXE_omablade").into()),
+        )
+        .args([
+            "_backend",
+            if write { "helper-write" } else { "helper-read" },
+            "--provider",
+            provider,
+            "--plugin-dir",
+            directory,
+            "--helper",
+            helper,
+            "--method",
+            method,
+            "--arguments",
+            "[]",
+        ])
+        .env("HOME", self.root.path())
+        .env("OMABLADE_APP_ROOT", self.root.path())
+        .env("XDG_STATE_HOME", self.root.path().join("state"))
+        .env("XDG_CONFIG_HOME", self.root.path().join("config"))
+        .env(
+            "PATH",
+            format!("{}:/usr/bin", self.root.path().join("scripts").display()),
+        )
+        .output()
+        .unwrap();
+        serde_json::from_slice(&output.stdout)
+            .unwrap_or_else(|_| json!({"ok":false,"error":String::from_utf8_lossy(&output.stderr)}))
+    }
+}
+
+#[test]
+fn canonical_routes_match_only_the_exact_owned_identities_and_helper() {
+    for (module, route) in [
+        ("skills", CoreRoute::Skills),
+        ("memory", CoreRoute::Memory),
+        ("hooks", CoreRoute::Hooks),
+        ("mcp", CoreRoute::Mcp),
+    ] {
+        for provider in [
+            format!("omablade.core.{module}"),
+            format!("mash2rafi.omablade-{module}"),
+            format!("example.agent-{module}"),
+        ] {
+            assert_eq!(canonical_route(&provider, "inventory"), Some(route));
+            assert_eq!(canonical_route(&provider, "other"), None);
+            assert_eq!(
+                canonical_route(&format!("{provider}/{module}"), "inventory"),
+                None
+            );
+        }
+    }
+    for provider in [
+        "example.sample-images",
+        "acme.skills",
+        "omablade.core.other",
+        "skills",
+    ] {
+        assert_eq!(canonical_route(provider, "inventory"), None);
+    }
+}
+
+fn rejected(result: &Value) -> bool {
+    result["ok"] == false
+        && result["error"]
+            .as_str()
+            .is_some_and(|error| error.contains("core helper"))
+}
+
+#[test]
+fn core_helpers_never_query_the_registry_and_cannot_be_retargeted() {
+    let fixture = Fixture::new();
+    for module in ["skills", "memory", "hooks", "mcp"] {
+        let provider = format!("omablade.core.{module}");
+        let result = fixture.run(&provider, "", "inventory", "list", false);
+        assert_eq!(result["ok"], true, "{result}");
+        assert_eq!(result["args"], Value::Null, "{result}");
+        assert_eq!(result["schemaVersion"], json!(1), "{result}");
+        assert!(rejected(&fixture.run(
+            &provider,
+            "/retired/checkout",
+            "inventory",
+            "list",
+            false
+        )));
+        assert!(rejected(
+            &fixture.run(&provider, "", "other", "list", false)
+        ));
+        assert!(rejected(&fixture.run(
+            &provider,
+            "",
+            "inventory",
+            "apply",
+            false
+        )));
+        assert!(rejected(&fixture.run(
+            &provider,
+            "",
+            "inventory",
+            "list",
+            true
+        )));
+        for legacy in [
+            format!("mash2rafi.omablade-{module}"),
+            format!("example.agent-{module}"),
+        ] {
+            assert_eq!(
+                fixture.run(&legacy, "/retired/checkout", "inventory", "list", false)["ok"],
+                true
+            );
+        }
+    }
+    assert!(!fixture.root.path().join("registry-called").exists());
+}
+
+#[test]
+fn skills_and_memory_writes_need_no_separate_consent() {
+    let fixture = Fixture::new();
+    for provider in [
+        "omablade.core.skills",
+        "omablade.core.memory",
+        "mash2rafi.omablade-skills",
+        "example.agent-memory",
+    ] {
+        let result = fixture.run(provider, "", "inventory", "apply", true);
+        assert!(!rejected(&result), "{result}");
+    }
+}
+
+#[test]
+fn recovery_label_and_usage_methods_are_limited_to_their_owned_modules() {
+    let fixture = Fixture::new();
+    for module in ["hooks", "mcp"] {
+        let provider = format!("omablade.core.{module}");
+        assert!(!rejected(&fixture.run(
+            &provider,
+            "",
+            "inventory",
+            "recovery-list",
+            false
+        )));
+        for method in ["prepare-remove", "remove-prepared", "restore", "discard"] {
+            assert!(!rejected(&fixture.run(
+                &provider,
+                "",
+                "inventory",
+                method,
+                true
+            )));
+            assert!(rejected(&fixture.run(
+                &provider,
+                "",
+                "inventory",
+                method,
+                false
+            )));
+        }
+        assert_eq!(
+            !rejected(&fixture.run(&provider, "", "inventory", "label", true)),
+            module == "hooks"
+        );
+    }
+    for module in ["skills", "memory", "hooks", "mcp"] {
+        let provider = format!("omablade.core.{module}");
+        assert_eq!(
+            !rejected(&fixture.run(&provider, "", "inventory", "usage", false)),
+            matches!(module, "skills" | "mcp")
+        );
+        assert_eq!(
+            !rejected(&fixture.run(&provider, "", "inventory", "usage-forget", true)),
+            module == "mcp"
+        );
+        for (method, write) in [("usage", true), ("usage-forget", false)] {
+            assert!(rejected(&fixture.run(
+                &provider,
+                "",
+                "inventory",
+                method,
+                write
+            )));
+        }
+    }
+    assert!(rejected(&fixture.run(
+        "omablade.core.skills",
+        "",
+        "inventory",
+        "recovery-list",
+        false
+    )));
+}

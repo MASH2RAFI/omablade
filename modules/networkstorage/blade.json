@@ -1,0 +1,10 @@
+{
+  "id": "networkstorage",
+  "name": "Network Storage",
+  "glyph": "",
+  "description": "An independent, expandable file tree of connected network storage, with sync/un-sync per row",
+  "entry": "Module.qml",
+  "hostContract": 1,
+  "singleton": true,
+  "minHeight": 160
+}

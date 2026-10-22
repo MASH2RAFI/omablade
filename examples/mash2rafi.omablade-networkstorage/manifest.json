@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "mash2rafi.omablade-networkstorage",
+  "name": "Network Storage",
+  "version": "0.1.0",
+  "author": "MASH2RAFI",
+  "license": "MIT",
+  "description": "A file tree of connected network shares with per-folder offline sync.",
+  "kinds": [
+    "service"
+  ],
+  "entryPoints": {
+    "service": "Service.qml"
+  },
+  "extensions": {
+    "mash2rafi.omablade/blade": [
+      {
+        "id": "networkstorage",
+        "name": "Network Storage",
+        "glyph": "",
+        "description": "An independent, expandable file tree of connected network storage, with sync/un-sync per row",
+        "entry": "blades/Module.qml",
+        "provider": null,
+        "hostContract": 1,
+        "singleton": true,
+        "minHeight": 160
+      }
+    ]
+  }
+}

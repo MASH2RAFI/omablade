@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo=${OMABLADE_REPO:-https://github.com/MASH2RAFI/omablade.git}
+id=mash2rafi.omablade
+legacy=data-goblin.fileblade
+plugins="$HOME/.config/omarchy/plugins"
+plugin="$plugins/$id"
+bin_dir="$HOME/.local/bin"
+bindings="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/bindings.lua"
+begin_mark="-- >>> omablade bindings >>>"
+end_mark="-- <<< omablade bindings <<<"
+
+dry=0 add_bindings=1 force_bindings=0 keep_legacy=0
+usage() {
+  cat <<'EOF'
+Usage: plugin-setup [--dry-run] [--no-bindings] [--force-bindings] [--keep-fileblade]
+
+Installs or updates Omablade as an Omarchy plugin, enables it, links the
+omablade command into ~/.local/bin and adds the blade keybindings to
+~/.config/hypr/bindings.lua. Running it again is safe.
+
+  --dry-run         print what would change and change nothing
+  --no-bindings     leave ~/.config/hypr/bindings.lua alone
+  --force-bindings  add the bindings even if bindings.lua already calls Omablade
+  --keep-fileblade  leave the FileBlade plugin enabled (both claim the same keys)
+
+One line:
+  curl -fsSL https://raw.githubusercontent.com/MASH2RAFI/omablade/main/tools/plugin-setup | bash
+EOF
+}
+while (($#)); do
+  case $1 in
+    --dry-run) dry=1 ;;
+    --no-bindings) add_bindings=0 ;;
+    --force-bindings) force_bindings=1 ;;
+    --keep-fileblade) keep_legacy=1 ;;
+    -h|--help) usage; exit 0 ;;
+    *) printf 'plugin-setup: unknown option %s\n' "$1" >&2; usage >&2; exit 2 ;;
+  esac
+  shift
+done
+
+say() { printf '%s\n' "$*"; }
+step() { printf '==> %s\n' "$*"; }
+run() {
+  if ((dry)); then printf '    would run: %s\n' "$*"; else "$@"; fi
+}
+fail() { printf 'plugin-setup: %s\n' "$*" >&2; exit 1; }
+
+command -v omarchy >/dev/null 2>&1 || fail "omarchy is not installed; this sets Omablade up as an Omarchy plugin"
+command -v git >/dev/null 2>&1 || fail "git is required"
+[[ $(uname -m) == x86_64 ]] || say "note: the bundled backend is x86-64 only; on $(uname -m) build one with cargo build --release --locked inside $plugin"
+
+step "Omablade plugin"
+if [[ -e $plugin ]]; then
+  if [[ -e $plugin/.git && $(git -C "$plugin" rev-parse --show-toplevel 2>/dev/null) == "$(cd "$plugin" && pwd -P)" ]]; then
+    run omarchy plugin update "$id" --yes
+  else
+    say "    $plugin exists but is not a git checkout; leaving it as it is"
+  fi
+  run omarchy plugin enable "$id"
+else
+  run omarchy plugin add "$repo" --enable --yes
+fi
+
+if [[ -e $plugins/$legacy ]] && ((!keep_legacy)); then
+  step "FileBlade"
+  say "    disabling $legacy; it claims the same keys and IPC as Omablade (its files stay in place)"
+  run omarchy plugin disable "$legacy"
+fi
+
+step "omablade command"
+link="$bin_dir/omablade"
+if [[ -L $link || ! -e $link ]]; then
+  run mkdir -p "$bin_dir"
+  run ln -sfn "$plugin/omablade" "$link"
+  case ":$PATH:" in *":$bin_dir:"*) ;; *) say "    add $bin_dir to PATH to use the omablade command" ;; esac
+else
+  say "    $link exists and is not a link; leaving it alone"
+fi
+
+if ((add_bindings)); then
+  step "Keybindings"
+  source_file="$plugin/examples/omablade-bindings.lua"
+  if [[ ! -f $bindings ]]; then
+    say "    $bindings not found; paste $source_file into your Hyprland bindings yourself"
+  elif ((dry)) && [[ ! -f $source_file ]]; then
+    say "    would add $source_file to $bindings"
+  elif [[ ! -f $source_file ]]; then
+    fail "$source_file is missing from the plugin"
+  elif grep -qF -- "$begin_mark" "$bindings"; then
+    say "    refreshing the Omablade block in $bindings"
+    if ((!dry)); then
+      cp -p "$bindings" "$bindings.bak-omablade-$(date +%Y%m%d%H%M%S)"
+      awk -v begin="$begin_mark" -v end="$end_mark" -v src="$source_file" '
+        $0 == begin { print; while ((getline line < src) > 0) print line; skip = 1; next }
+        $0 == end { skip = 0 }
+        !skip { print }
+      ' "$bindings" > "$bindings.omablade-new" && mv -f "$bindings.omablade-new" "$bindings"
+    fi
+  elif ((!force_bindings)) && grep -qE -- 'omablade control|mash2rafi\.omablade\.control' "$bindings"; then
+    say "    $bindings already calls Omablade; keeping your bindings (use --force-bindings to add the defaults)"
+  else
+    say "    adding the Omablade block to $bindings (a backup is kept next to it)"
+    if ((!dry)); then
+      cp -p "$bindings" "$bindings.bak-omablade-$(date +%Y%m%d%H%M%S)"
+      { printf '\n%s\n' "$begin_mark"; cat "$source_file"; printf '%s\n' "$end_mark"; } >> "$bindings"
+      command -v hyprctl >/dev/null 2>&1 && hyprctl reload >/dev/null 2>&1 || true
+    fi
+  fi
+fi
+
+step "Done"
+((dry)) && say "    dry run: nothing was changed"
+say "    open a blade with Super+B (or your own binding), or run: omablade --help"

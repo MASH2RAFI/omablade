@@ -1,0 +1,1092 @@
+This file was written by an agent.
+
+# Omablade extensions
+
+Omablade is a native Omarchy application. Extensions add blade modules,
+file-menu actions or shared inventory helpers through a bounded manifest.
+A blade module is a pane that a person places in an Omablade slot.
+
+## Native installation
+
+Place a trusted extension directory containing `manifest.json` under
+`${XDG_CONFIG_HOME:-$HOME/.config}/omablade/extensions/<publisher.name>`.
+A symlink to a local checkout also works. Then refresh discovery:
+
+```sh
+omablade rescan-modules
+omablade modules
+```
+
+A module that declares `"defaultPlacement": "beside-files"` then appears as a
+tab beside the Omablade tab on its own (see
+[Where a new module appears](#where-a-new-module-appears)). Place any other
+module from blade settings, the `+` in a tab row, or
+`omablade blade add left publisher.name/module`.
+
+The authority validates the manifest and records activation in its receipt.
+New valid providers are activated by default. Removing the directory and
+rescanning removes its contributions. Extensions execute as the desktop user;
+review the source before registering one.
+
+Native extensions open in blades. Sample Images is an external gallery
+extension; Skills, Memory, Hooks and MCP are built into Omablade.
+
+## Built-ins and legacy aliases
+
+Skills, Memory, Hooks and MCP ship under `modules/` and are implemented in the
+backend under `src/core_modules/`. They do not require companion checkouts, an enabled Omarchy
+service or a registry connection. Their module IDs are `skills`, `memory`,
+`hooks` and `mcp`; their shared provider IDs are `omablade.core.<module>`.
+Providers load inventory on attachment and share it across attached views.
+
+The exact old module IDs `mash2rafi.omablade-<module>/<module>` and
+`example.agent-<module>/<module>` resolve to those four built-in IDs. Slot state,
+tab order and selection are retained, and singleton lookup uses the canonical
+ID. These aliases do not apply to other extensions. Samples remains a separate
+extension with module ID `example.sample-images/sample-images`, its own provider,
+settings and enabled lifecycle.
+
+When restored aliases collide, one singleton remains across both edges. An
+occurrence active in its saved slot wins; ties use left edge before right,
+then slot and tab order. The surviving active tab stays selected; if removed,
+selection moves to the next surviving tab, or the previous one. Removed tabs
+are retained in `blades.singletonRecovery` inside `blades.json`, with their
+original tab document, canonical module ID and saved location. Each record
+has `version: 1`; its `tab.state` contains the displaced settings for recovery.
+These records survive save/reload. If including them exceeds the layout byte
+limit, saving is refused and the original disk document remains intact.
+
+Core helper requests use `inventory`, no external provider directory and a
+fixed method declaration. They are answered inside the backend process: no helper
+executable is resolved and no interpreter is spawned. Supplying a directory for
+a core provider is refused. Historical companion recovery routes retain their original evidence
+but execute the bundled helper; a retired checkout is never used for recovery.
+Skills and Memory writes still require Manage agent files. Browsing hooks and
+MCP declarations executes no configured hook or server.
+
+External providers keep their manifest declarations, directory validation,
+activation checks and shared lifecycle. `module_helpers::canonical_route`
+identifies only the four core inventory routes and their exact historical
+provider IDs; unrelated routes remain distinct.
+
+The reasoning and ownership boundaries behind this contract live in
+[`docs/agent-written/design.md`](docs/agent-written/design.md).
+
+> [!NOTE]
+> The example at `examples/mash2rafi.blade-example/` includes a clock module
+> and an action. Copy it and rename `manifest.example.json` to `manifest.json` before installing it.
+> `examples/mash2rafi.omablade-networkstorage/` is a complete native extension
+> with a helper script: a Network Storage module for mounted shares and offline sync.
+
+## Discovery and ownership
+
+Built-in modules live under `modules/<id>/blade.json`. User modules live under
+`~/.config/omarchy/omablade/modules/<id>/blade.json`. Registered extensions
+supply `manifest.json` from the native extension directory above.
+
+Run `omablade rescan-modules` after changing registrations. Omablade checks
+manifest bounds, entry paths, provider identities and `hostContract`, then
+lists valid definitions in the picker and `omablade modules`, grouped by `category`. Extension
+module IDs are namespaced as `<providerId>/<moduleId>`. QML loads only when
+its module is placed in a slot.
+
+The extension owns its QML and helpers. Omablade owns discovery, shared
+services, navigation, focus, state directories and bounded helper execution.
+See [the design guide](docs/agent-written/design.md) for those boundaries.
+
+## The definition
+
+Whether it's a `blade.json` or an entry in a manifest, a module definition is
+this object:
+
+```yaml
+id:           required; [A-Za-z0-9][A-Za-z0-9._-]*, max 128 chars
+name:         shown in tabs and the picker; defaults to the id
+glyph:        one NerdFont glyph for the picker; optional
+icon:         optional image path relative to the definition (SVG or PNG, no `..`); drawn as a tinted silhouette in the picker, the settings sheet and `PaneHeader.iconUrl`, taking precedence over `glyph` wherever a picture fits
+description:  one line for the picker
+entry:        QML path relative to the definition; no `..`, no leading `/` (default Module.qml)
+hostContract: 1, 2 or 3; a module that asks for a newer host is listed but not loadable
+singleton:    true means only one slot may hold it (default true); false allows many
+minHeight:    pixels the slot can't shrink below, 0 to 4096
+category:     one word or a short phrase (max 32) the picker groups by; set this explicitly for a contributed module
+settings:     optional `{ defaults, schema }`; the host renders the schema in blade settings and stores values in `context.state` under each key
+defaultPlacement: optional; "beside-files" adds the module as a tab beside the Omablade tab the first time it is discovered; any other value is ignored
+```
+
+A `blade.json` holds one of these. A manifest holds a list of them under the
+socket key, and can also set `hostContract` once at the top for all of them:
+
+```json
+{
+  "schemaVersion": 1,
+  "id": "publisher.example",
+  "kinds": ["service"],
+  "entryPoints": { "service": "Service.qml" },
+  "extensions": {
+    "mash2rafi.omablade/blade": [
+      {
+        "id": "clock",
+        "name": "Clock",
+        "glyph": "",
+        "description": "A live clock that remembers its format per slot",
+        "entry": "blades/Clock.qml",
+        "provider": "Provider.qml",
+        "hostContract": 1,
+        "singleton": false
+      }
+    ]
+  }
+}
+```
+
+### Where a new module appears
+
+Without `defaultPlacement` a discovered module only joins the picker and
+`omablade modules`; the person places it. With `"defaultPlacement":
+"beside-files"` the host places it once, the first time the module is both
+discovered and loadable (registered, enabled, `hostContract` supported):
+
+```yaml
+target:       the section holding the `files` tab, on whichever blade it is; the tab is appended after the existing tabs
+selection:    unchanged; the new tab is not made current and no blade opens
+no files tab: the section of the most recently placed beside-files module that is still in the layout, else a new section at the bottom of the left blade
+full section: a section already at 32 tabs gets a new section directly below it instead
+same rescan:  several new modules are placed in the module picker's order (category, then name)
+```
+
+The host records every beside-files module it has seen in
+`defaultPlacements`, a list of canonical module IDs at the top level of
+`blades.json`, and never places a recorded module again: closing its tab,
+moving it, or disabling, removing and reinstalling the extension keeps the
+person's choice. A module that is already somewhere in the layout when the host
+first sees it is recorded without a second tab. Placement waits until the saved
+layout has been read and is writable; a chooser window or an unreadable layout
+never places. Reverting to defaults in Settings, or `resetBladeLayout`, clears
+the record, so the default arrangement includes every installed beside-files
+module again. `omablade modules` reports the declared value as
+`defaultPlacement` (null when absent), and `omablade extension check` refuses
+any value other than `beside-files`. Older hosts ignore the key.
+
+### The provider a module shares
+
+Declare `provider` on a blade contribution to share one runtime across its
+views. Omablade reads the installed manifest, creates one `Provider.qml` per
+provider and supplies it as `context.providerService` and through
+`context.service(providerId)`. Use `"provider": null` for a module with no
+shared state.
+
+An extension installed as an Omarchy plugin takes the other path. The shell
+owns the plugin's service entry point and Omablade does not create a second
+runtime beside it: `context.providerService` is the object the shell built from
+`entryPoints.service`. Make that file the provider itself, so a module reads
+the same properties in both shapes:
+
+```qml
+import QtQuick
+
+Provider {
+  property var shell: null
+  property var manifest: null
+  property var pluginRegistry: null
+  providerId: manifest && manifest.id ? String(manifest.id) : ""
+  providerRoot: decodeURIComponent(String(Qt.resolvedUrl(".")).replace(/^file:\/\//, "")).replace(/\/$/, "")
+}
+```
+
+The shell does not pass `files` or `inventoryComponentUrl`, so `attach` takes
+them from the first context (`context.service("files")`,
+`context.ui.url("ArtifactInventory")`) when they are still empty. A service that
+only wraps a lazily loaded `Provider.qml` has none of the provider's
+properties, and a module that waits on one of them stays on `Loading…` in the
+plugin shape while working natively. `omablade extension template` writes the
+working shape.
+
+Omablade constructs the provider with `providerId`, `providerRoot`, `files`
+and `inventoryComponentUrl`. `attach(context)` must be idempotent,
+`detach(context)` releases one view, and `shutdown()` is terminal. Creating a
+provider does no work; its first attachment starts shared work and its last
+detachment quiets it. Removal shuts it down, including its watchers.
+
+## What your module gets
+
+The entry QML is loaded as a `FocusScope` with one required property,
+`context`. That's a `BladeContext`, and it's the whole API. The bits you'll
+actually use:
+
+```yaml
+identity:
+  context.moduleId, moduleDir:            who you are and where your files are
+  context.providerId:                     registered provider id for a contributed module; empty for built-in/user modules
+  context.edge, slotIndex, slotId:        where you are
+  context.tabIndex, tabCount:             tabs inside this slot
+flags (read only, bind to them for styling):
+  context.bladeOpen, bladeFocused, slotFocused, collapsed, docked, dragging
+  context.definition:                     the normalized definition; `definition.iconUrl` is the file URL of a declared `icon`
+  context.host.fontScale:                 the Font size the user chose, 0.75 to 2.0; multiply your own Style.font sizes by it to follow Omablade
+state:
+  context.state.get(key, fallback):       per-tab state, persisted in blades.json
+  context.state.set(key, value):          same; keep it small, it's saved with the layout
+directories (feature-detect with context.stateDir !== undefined; the contract version stays 2):
+  context.stateDir, context.configDir:    this module's own directories, created 0700 by the backend when the module loads
+  context.dirsReady:                      true once the backend has created them
+  context.ensureDirs(callback):           ask for them now; callback gets { ok, stateDir, configDir } or { ok: false, error }
+settings (from the definition's schema):
+  context.settings.get(key):              the stored state value when it fits the row, else the row's default
+  context.settings.set(key, value):       coerces against the row, then context.state.set; false for an undeclared key
+  context.settings.has(key):              true when the definition declares the key
+  context.settings.schema / defaults:     the normalized rows and the merged defaults
+  context.category:                       the normalized definition's category
+shared services:
+  context.service("files"):               the files controller: selectedPath, rootPath, contextPath, projectRoot, openInEditor(path),
+                                          openDefault(path, targetScreen?, isDir?), revealInFileManager(path, isDir, targetScreen?),
+                                          openUrl(url, targetScreen?), copyText(text)
+  context.service("properties"):          show your own selected item in the Properties pane; see "Showing an item in Properties"
+  context.providerService:                your contributing extension's singleton service, or null
+  context.service(providerId):            a registered provider runtime, or null
+focus:
+  context.requestFocus(part):             ask the host to give this slot keyboard focus
+  context.focusNext() / focusPrevious():  hand focus to the neighbouring slot (Tab and Shift+Tab, by convention)
+  context.reportFocus(bool):              tell the host when your activeFocus changes
+slot and blade:
+  context.setCollapsed(bool) / toggleCollapsed()
+  context.openSettings() / toggleSettings() / closeBlade()
+tabs:
+  context.openTab(moduleId, state):       open another tab in this slot (default: another of you)
+  context.cycleTab(delta) / selectTab(i)
+drag handle:
+  context.handlePressed(item, x, y) / handleMoved / handleReleased / handleCanceled
+                                          wire these to a MouseArea on your title and it becomes the reorder handle
+ui:
+  context.ui.url("PaneHeader"):           file URL of a shared widget in Omablade's ui/ dir
+paths:
+  context.paths.canonical(path):          canonical local byte URI for identity comparisons, or empty if invalid
+  context.paths.parent(path):             parent identity without losing native bytes
+  context.paths.join(directory, name):    join an identity and a plain relative name
+  context.paths.within(path, directory):  byte-faithful containment test
+  context.paths.name(path):               escaped display name, never an action argument
+metrics (contract 2):
+  context.metrics.options(specs):         one metric option per spec; a spec is a key ("tokens") or an object
+                                          ({ key, label, shortLabel, kind }) whose fields override the standard entry
+  context.metrics.option(spec):           the same for one spec
+  context.metrics.kind(option):           "agents" | "date" | "number" | "text"
+  context.metrics.estimateTokens(bytes):  ceil(bytes / 4); the one token estimate every blade shows
+  context.metrics.textKeys:               ["tokens", "characters", "words", "bytes"]
+```
+
+`openDefault` is the shared open primitive for every module. Files go to their
+desktop default application; folders navigate the Files module and bring its
+tab forward. Pass `context.screen` and a known `isDir` value when you have
+them. When `isDir` is omitted, Omablade probes the path before routing it, so
+third-party modules inherit the same folder behavior without duplicating it.
+All shared primitives that leave Omablade (`openInEditor`, `openAtLine`, file
+`openDefault`, `openWithApplication`, and `revealInFileManager`) first release
+the blade and any modal drop wheel's keyboard focus without restoring the
+previously focused window.
+The application being opened therefore becomes the only focus target; extensions
+must use these shared primitives instead of spawning their own opener.
+
+Standard metric keys are `off`, `agents`, `status`, `updated`, `created`,
+`tokens`, `characters`, `words`, `bytes`, `summary`. Ask for them by key and
+your column labels match every other blade; pass an object to rename one
+(`{ key: "tokens", label: "Tokens (descriptions)" }`) or to add your own.
+
+Host contract 2 adds `context.metrics` and passes the wanted state on the
+all-agents signal (below). A module that declares `hostContract: 2` is listed
+but not loadable on a contract 1 host.
+
+`context.service(id)` resolves Omablade-owned services and registered provider
+runtimes. Treat the result and `context.providerService` as nullable because
+registration, removal and application restarts can change availability.
+
+A loaded module keeps its own context identity until destruction. Changing the
+slot's active module does not redirect that context to the incoming provider.
+When replacing a module, the host sets its context's `bladeOpen` false and
+refuses further state writes and focus requests. Persist presentation changes
+as they occur; accepted shared work belongs in the provider service.
+
+`context.stateDir` and `context.configDir` are
+`~/.local/state/omarchy/omablade/modules/<id>/` and
+`~/.config/omarchy/omablade/config/<id>/`, with the `/` in a extension module id
+written as `+` (`mash2rafi.blade-example/clock` becomes
+`mash2rafi.blade-example+clock`). The backend creates them `0700` when the
+module loads; `context.dirsReady` says when, `context.ensureDirs(cb)` when you
+cannot wait. Keep large or shared things here, not in `context.state`. They are
+private to you, not to your module: any code running as the same user can read them.
+
+The visual module is instantiated once for every slot that displays it, and
+potentially once per screen. Keep per-tab presentation state in
+`context.state`, but put shared scanners, subprocesses, watchers, caches, and
+mutation logic in the provider's `Provider.qml`. The module should bind to
+`context.providerService` instead of starting another copy of that work. This
+also gives the service one teardown boundary when the companion extension is
+removed or the application restarts.
+
+For JSON inventories, load `context.ui.url("ArtifactInventory")` once in the
+provider service. Bind its `observers` to the active view contexts, and supply
+`files`, `providerId`, and `providerRoot` from the host context and injected
+manifest. Views attach when open and expanded, and detach when hidden or
+destroyed. Memory, Skills, Hooks and MCP use this runtime. Search, selection and expansion
+remain view state.
+
+Declare the executable and its methods in the provider manifest:
+
+```json
+"mash2rafi.omablade/helper": [
+  { "id": "inventory", "entry": "bin/inventoryctl",
+    "read": ["list"], "write": ["apply"], "timeoutMs": 8000 }
+]
+```
+
+The shared inventory runs two lanes through Omablade's resident backend:
+`list --project <contextPath> --json --scope project --exact` whenever the
+selection moves, and `list --project <contextPath> --json --scope user --exact`
+once at attach time and again only when its own watch fires. The user lane
+holds rows whose scope is not `project` or `local` and must not walk the
+project chain, so its `watchPaths` never include project directories; the
+project lane returns only project-level rows. `--scope all` is the default for
+direct CLI use and returns both. Rows from the two lanes are concatenated,
+project first, and the merged array is republished only when its content
+changes, so a selection change never blanks the user-level rows. Set
+`exactProject: false` for helpers without `--exact`. Responses use
+`schemaVersion: 1`, `ok`, `items`, `project`, and `truncated`; `itemsKey`
+selects another row-array field. `watchPaths` supplies at most 512
+directories. The core modules collect a bounded
+watch plan alongside discovery, including existing parents of missing sources;
+callers record each source and visited directory. A subscription is reconciled
+after installation, and watch failures or incomplete coverage remain visible.
+Use `refresh(true)` for an explicit refresh so partially established watches
+are retried; automatic invalidation uses `refresh()` without reinstalling them.
+`scanArguments` adds provider-specific listing flags. Hooks and MCP request
+`--watch` for this private transport; their default CLI output does not include
+native watch directories. MCP's redacted display aliases remain separate from
+the inventory's captured `anchorPath` used for actions.
+
+`mutate(method, arguments, input, callback)` accepts one write at a time and
+copies its arguments immediately. An accepted write survives view closure and
+project changes; provider destruction cancels it. Private input travels on
+stdin, not argv. Reads cannot replace newer-project or post-mutation state.
+Owners using backend requests directly can pass `true` as the third argument
+to `cancelBackendRequest(id, generation, true)` during destruction to discard
+callbacks. Sent requests still occupy their concurrency slot until completion.
+The native transport confines executables to their declaring extension, separates
+read and write methods, enforces a 30-second maximum timeout, and retains at
+most 2 MiB stdout, 4 KiB stderr, and 64 KiB stdin. These are resource and
+ownership boundaries, not a sandbox for enabled extensions.
+
+Your module can expose a few things back to the host. All optional:
+
+```yaml
+title:           string the tab bar and shortcuts overlay use
+takeFocus(part): called when the host routes focus in; call forceActiveFocus() on the thing that should have it
+shortcuts:       [ { title, items: [ { shortcut, text } ] } ] rendered by the `?` overlay
+settings:        a Component the blade settings sheet renders for this module, below any rows the definition's schema declares
+```
+
+Style comes from the shell's `qs.Commons` (`Style`, `Color`, `Util`), so a
+module that uses those matches the current Omarchy theme for free. Have a
+look at `modules/notes/Module.qml` for a small real one and
+`modules/files/Module.qml` for the full-fat version with settings and
+shortcuts.
+
+## Showing an item in Properties
+
+This file was written by an agent.
+
+A module whose rows are not files (a Fabric item, a Unity Catalog table, a job)
+can still use the Properties pane. Feature-detect the service and keep a small
+detail block of your own for hosts without it:
+
+```qml
+readonly property var properties: context.service("properties")
+
+function publish(item) {
+  if (!properties) return false
+  return properties.inspect(context, {
+    title: item.name,
+    subtitle: item.type + " in " + item.workspace,
+    glyph: item.glyph,
+    glyphFamily: "FabricSymbols NF",
+    color: "#e8a33d",
+    fields: [
+      { label: "Workspace", value: item.workspace, kind: "text" },
+      { label: "Description", value: item.description, kind: "multiline" },
+      { label: "Tags", value: item.tags, kind: "tags" },
+      { label: "Portal", value: item.url, kind: "link" },
+      { label: "Path", value: item.path, kind: "code" }
+    ],
+    actions: [
+      { id: "rename", text: "Rename", glyph: "\u{f0455}" },
+      { id: "refresh", text: "Refresh" }
+    ]
+  })
+}
+
+Connections {
+  target: module.properties
+  ignoreUnknownSignals: true
+  function onActionTriggered(ownerModuleId, actionId) {
+    if (ownerModuleId === module.context.moduleId) module.runAction(actionId)
+  }
+}
+
+Component.onDestruction: if (properties) properties.release(context)
+```
+
+```yaml
+inspect(owner, subject):  owner is your module's own context; returns true when shown, false when refused
+                          (no owner, an owner whose view was unloaded, or a subject without a title)
+release(owner):           clears the pane only when owner is the context currently shown; returns whether it did
+actionTriggered(ownerModuleId, actionId):
+                          emitted when a person presses one of the subject's actions; ownerModuleId is
+                          context.moduleId of the module that published it (`<providerId>/<moduleId>` for an
+                          extension). Use Connections so the handler goes away with the view
+read only:                version (1), active, owner, ownerModuleId, ownerName, subject (the normalized copy),
+                          limits, kinds
+```
+
+The subject is copied and normalized when `inspect` is called; later changes to
+your object do nothing until you call `inspect` again. Call it again whenever the
+item changes, for example after a rename, and the pane keeps its cursor and
+scroll position while the title and subtitle stay the same.
+
+```yaml
+title:        required; one line, at most 160 characters
+subtitle:     one line, at most 240
+glyph:        at most 8 UTF-16 units, drawn in glyphFamily, otherwise dropped
+glyphFamily:  a font family name of letters, digits, space, dot, underscore or hyphen, at most 64
+              (for example "FabricSymbols NF", "DatabricksSymbols NF"); empty uses the shell font
+color:        #rgb, #rrggbb or #aarrggbb, or one of accent, muted, urgent, text; anything else uses accent
+fields:       up to 48 of { label, value, kind }; label is one line of at most 48. A field without a label or
+              without a value is skipped
+  text:       one line, at most 1024; newlines become spaces
+  multiline:  keeps line breaks, at most 8192
+  tags:       value is an array of strings, each one line of at most 64, at most 32 chips, duplicates dropped
+  link:       an http or https URL of at most 2048 without spaces; opened with files.openUrl. Any other
+              value is shown as plain text and opens nothing
+  code:       monospace, keeps line breaks, at most 8192; Enter or a click copies it through files.copyText
+  unknown kinds are shown as text
+budget:       all field values together are capped at 32768 characters
+actions:      up to 8 of { id, text, glyph, glyphFamily }; id is [A-Za-z0-9][A-Za-z0-9._-]*, at most 64, unique;
+              text is one line of at most 40 and defaults to the id
+  glyph:      the button's icon, bounded like the title glyph (at most 8 UTF-16 units); without one, or
+              when it is too long, Omablade picks a Nerd Font icon from the id (see below)
+  glyphFamily: the glyph's font, bounded like the title glyphFamily; ignored without a glyph of your own
+```
+
+Each button is a cell in a two-column grid: a plain icon on the left and the
+text on the right, with no border or fill, the text cut with an ellipsis when it
+does not fit (hover shows the whole text). Icons are muted until the pointer or
+the keyboard highlight is on the button; then icon and text take the accent
+colour, the highlighted label turns bold, and a press dims them slightly. The pane drops to one column when it is too narrow for
+two cells of about 130 px. Pass a glyph from your own symbol set so the buttons
+match your tree; otherwise the id decides the default icon by its leading word,
+case-insensitively:
+
+```yaml
+open, launch, browse, portal, visit:              open in new (nf-md-open_in_new)
+copy, yank, clip:                                 copy (nf-md-content_copy)
+download, export, save, fetch, pull:              download (nf-md-tray_arrow_down)
+rename:                                           rename (nf-md-rename_box)
+description, describe, comment, note:             edit text (nf-md-text_box_edit_outline)
+tag:                                              tag (nf-md-tag_outline)
+edit, modify, change, update, set:                pencil (nf-md-pencil_outline)
+refresh, reload, sync, rescan:                    refresh (nf-md-refresh)
+delete, remove, trash, drop, destroy, purge:      trash (nf-md-trash_can_outline), drawn in the urgent colour
+start, run, play, resume, restart, deploy:        play (nf-md-play_circle_outline)
+stop, terminate, cancel, kill, halt, pause, abort: stop (nf-md-stop_circle_outline)
+reveal, show, locate:                             folder (nf-md-folder_eye_outline)
+login, signin, sign-in, auth:                     sign in (nf-md-login)
+more, menu, actions:                              more (nf-md-dots_horizontal)
+anything else:                                    chevron (nf-md-chevron_right)
+```
+
+The defaults are drawn in the shell font. A destructive id keeps the urgent
+colour, on its icon and on hover, even with a glyph of your own.
+
+Control characters are removed and an over-long value is cut with an ellipsis.
+When fields, chips or actions are dropped for these limits the pane says that
+some properties were left out. Everything renders as plain text.
+
+The pane shows whichever is newer: a file selection or the last subject. A new
+selection in Files, search or the media grid replaces your subject, even when it
+is the same file again; refreshes that keep the same selected paths do not.
+`release` returns the pane to the current file selection. When the view that
+published a subject is unloaded (its slot switches to another tab, its tab
+changes module, its slot is removed, the extension is removed or disabled) the
+subject is cleared, so a stale item never stays on screen. Publish again when
+your view loads if its selection should come back.
+
+The action grid sits under the subtitle, above the fields. In the pane,
+`j`/`k` move a cursor over the buttons, left to right and row by row, and then the fields, starting on the
+first field; `g`/`G` jump to the first and last, Enter or `o` opens a link, copies code or runs the
+action, `y` or Ctrl+C copies the field, and Escape closes the blade. File
+shortcuts such as Delete, F2 or `e` do nothing while a subject is shown.
+`actionTriggered` reaches every view that listens, so a module with
+`singleton: false` should also check `properties.owner === context`.
+
+`files.openUrl(url, targetScreen?)` and `files.copyText(text)` are the same
+primitives the pane uses. `openUrl` accepts http and https only and hands the
+link to the desktop's default handler through the backend (`gio open`), after
+releasing the blade's keyboard focus. `copyText` sends at most 64 KiB to the
+clipboard as private request input, never as a command argument.
+
+## Search and quick nav like Files
+
+This file was written by an agent.
+
+A module whose rows are not files can still search and jump the way Files
+does. Three shared pieces, loaded through `context.ui.url(...)`, keep the
+keys, buttons and matching identical, so the two cannot drift:
+
+```yaml
+PaneSearchField:  the search row. Set showOptions and showDeepOption to get the Aa, .* and fzf buttons;
+                  bind caseSensitive, regex and deep, handle optionsToggled(case, regex), deepToggled(on),
+                  historyStepped(delta) for ↑/↓ recall, dismissed, advanced and accepted
+SearchGrammar:    the Files search grammar (lib/SearchQuery.js) as a non-visual item: parse(query, keys, options),
+                  matches, rank, compareRanks, rankedTree(rows, spec, recordOf), rankedGroups, words(spec),
+                  spans(text, spec), markup(text, spans, color), frecency({ score, last }, now) and
+                  ranked(query, records, options)
+QuickNavCard:     the Shift+Z card Files uses: title, note, placeholder, status, statusUrgent, chips, model,
+                  glyphFor / glyphColorFor / glyphFamilyFor(row); signals edited(text), activated(index, alternate),
+                  dismissed(), chipToggled(key, active), deepRequested() (Ctrl+F), emptyBackspace()
+```
+
+A record is `{ name, text, fields }`: unqualified terms match `name` first
+and then `text`, `name:` only the name, and each `fields` key holds a string
+or an array for the qualifiers you pass in `keys`. Files folds `type:` values
+into its own kinds (`dir`, `file`, `image` and so on); pass
+`options.normalize(key, value)` to keep your own (`type:report`,
+`type:notebook`). `ranked` parses once, drops non-matching records, orders by
+the fzf rank, then by `record.frecency`, then by `text`, and returns at most
+`options.limit` rows (default 200) as `{ record, rank, frecency, nameSpans,
+relativeSpans }`. Card rows are `{ name, relative, nameSpans, relativeSpans }`
+plus whatever your glyph functions read; a `ListModel` with those roles works
+too. `frecency` decays a visit score with the same 7-day half-life as
+Omablade's recent files; a visit adds 1 to the decayed score.
+
+Keep the keys Files uses: `/` reveals the search row, `Ctrl+F` toggles fzf
+mode, `Shift+Z` opens the card, `Enter` and `Shift+Enter` activate and
+alternate, `Esc` closes. In fzf mode, search everything the module can know
+about (an index of its own), not only the rows it has loaded. A host older
+than this section has no `SearchGrammar` or `QuickNavCard`: the Loader fails
+quietly, so keep a plain filter and say that quick nav needs a newer
+Omablade.
+
+## Drop wheel actions for your items
+
+This file was written by an agent.
+
+Rows that are files get the standard drop wheel. A module whose rows are not
+files (a Fabric item, a Unity Catalog volume file, a cluster) can still put
+its own actions on the wheel and receive a drop on a Files folder. Drive the
+shared wheel through the files service; do not draw your own:
+
+```yaml
+files.dropWheel.beginDrag(paths, entries, screen, docked, x, y, spec, source):  start; false when paths is empty
+files.dropWheel.updateDrag(x, y, outside, modifiers):                          every pointer move
+files.dropWheel.endDrag():                                                     on release, after source.Drag.drop()
+files.dropWheel.cancelDrag():                                                  when the drag is cancelled
+files.dropWheel.handleDragKey(event) / handleDragKeyRelease(event):            call first from your key handlers; true means handled
+files.dropWheel.openForItems(paths, entries, spec, screen, x, y):              open the wheel from the keyboard, centred on x, y; false while a drag runs, for an empty paths or a spec without local: false
+```
+
+`x` and `y` are `context.surfaceOriginX/Y` plus the scene position, and
+`outside` is `!context.hostWindow.containsScenePoint(scene.x, scene.y)`, as in
+`ui/ArtifactTree.qml`. `entries` feeds the ghost: `{ name, isDir, glyph }`,
+with the glyph drawn in the shell font. Give the dragged row
+`Drag.keys: ["omablade-entry"]` and keep `Drag.active` true for the length of
+the drag so a Files folder can receive it.
+
+`spec` describes your actions:
+
+```yaml
+local:            false when paths are your own identities, not filesystem paths
+title:            caption shown while nothing is highlighted
+actions:          [ { id, label, glyph, key, description, run(paths, details), placements: [ same shape ] } ], at most 12
+includeDefaults:  local drags only: also show the standard actions after yours
+drop(paths, details):  local false only: called with { directory, copy } when the item is dropped on a Files folder
+```
+
+`run` receives the carried paths and `{ placement, target, files, screen, x, y }`.
+Returning nothing or `true` closes the wheel; returning `false` or a non-empty
+string keeps it open and shows that string as the reason. An action with
+`placements` opens a second ring, and a placement without its own `run` calls
+the parent's `run` with `details.placement` set to its `id`. `drop` returns the
+same way; a string becomes a short notice near the pointer.
+
+With `local: false` the wheel never asks the backend about the paths or the
+window under the pointer, shows only your actions, never pastes a path on a
+Shift or Ctrl release, and a drop on a Files folder goes to `drop` instead of
+moving or copying anything. The wheel opens the usual way: hold the drop-wheel
+key (Space by default) once the pointer is outside the blade. `ArtifactTree`
+modules return the same `spec` from `dropSpec(item)`.
+
+To open the same wheel from the keyboard, for example on `m` like the Files
+actions key, call `openForItems` with the cursor row's identity, ghost entry
+and `spec`, and the row's centre in the same coordinates as a drag
+(`context.surfaceOriginX/Y` plus `row.mapToItem(null, ...)`). The wheel takes
+the keyboard: its letter keys, the arrows and Enter pick an action, and Escape
+closes it. Feature-detect it with `typeof files.dropWheel.openForItems === "function"`.
+
+## Image galleries
+
+This file was written by an agent.
+
+A module that shows pictures instead of rows loads the shared gallery through
+`context.ui.url(...)`, the same way artifact modules load `ArtifactTree`:
+
+```yaml
+ImageGrid:         a FocusScope; feed it `items`, `query`, `filterKeys`, `sizeStep`, `thumbnails`, `selectedPath` and your `context`
+ThumbnailCache:    one per provider service; `files` is the files service, `request(path, stamp, edge, callback)` answers with `{ ok, url }`
+TimelineScrubber:  drawn by the grid on its right edge: a year rail with one dot per month, a thumb for the viewport, and a month pill while the pointer scrubs
+ImageSizeControl:  the five-step preview size stepper (`step`, `stepRequested(step)`), for a toolbar
+ModuleIcon:        `iconUrl` or `glyph`, tinted with `color`; what the picker and PaneHeader use for a declared `icon`
+```
+
+Each item is `{ path, name, date, text, fields, stamp }` plus whatever the module
+wants back: `path` is the actionable file, `date` an ISO string or epoch seconds
+(empty groups under Undated), `text` the search haystack, `fields` a map of
+filter key to string array for `key:value` terms, and `stamp` a fingerprint of
+the file (size and modification time) that keys the thumbnail. The grid groups
+items by month, newest first, lays rows out for the current width, keeps a
+cursor, and emits `chosen(item)` when the cursor moves, `activated(item)` on
+Enter or a double-click, `contextRequested(item, x, y)` on a right-click, and
+`dragBegan`, `dragMoved`, `dragEnded` for a drop-wheel drag. With `context` set,
+the grid routes the drop-wheel keys during that drag itself, so Space opens the
+wheel and Escape cancels the drag before your own key handling sees them, and
+hiding the grid mid-drag ends it with `dragEnded(item, true)`. `sizeStep` is 0 to
+4 (`lib/ImageGallery.js` owns the five cell sizes and the thumbnail edge each
+step requests); `+`, `-` and `=` ask the owner to change it through
+`sizeStepRequested(delta)` so the value can live in `context.state`. Arrows and
+`hjkl` move, `g`/`G` and Home/End jump, PageUp/PageDown and Ctrl+D/U page, Esc
+raises `dismissRequested`. `query` uses the Files search grammar (`SearchQuery.js`)
+with the module's `filterKeys`; an invalid pattern shows up in `filterInvalid`.
+Thumbnails come from the backend `thumbnail` request through `ThumbnailCache`,
+so they land in `~/.cache/omablade/thumbnails/` beside the Properties previews
+and are shared between screens and blade instances.
+
+`ImageTile` releases its thumbnail subscription when recycled or destroyed.
+Custom consumers of `ThumbnailCache.request` must call `cancel(callback)` when
+that callback is no longer useful; the last subscriber cancels the backend
+request. The cache retains at most 4,096 results and 1,024 pending keys, with
+at most 128 subscribers per key. `reset()` invalidates cached results and
+cancels pending work.
+
+## Settings without QML
+
+Declare a schema and blade settings draws the form: `string`, `integer`,
+`number`, `boolean`, `enum`, `path`, the same rows Omarchy's `barWidget.schema`
+uses. Read values with `context.settings.get(key)`; they are ordinary
+`context.state` keys, so a module that already uses `context.state.get` needs
+no change. A QML `settings` Component still works and renders below the
+generated rows.
+
+```json
+{
+  "settings": {
+    "defaults": { "format": "HH:mm", "refresh": 60 },
+    "schema": [
+      { "key": "format", "type": "string", "label": "Format", "description": "Qt date format", "maxLength": 64, "placeholder": "HH:mm" },
+      { "key": "showSeconds", "type": "boolean", "label": "Seconds" },
+      { "key": "refresh", "type": "integer", "label": "Refresh (s)", "min": 1, "max": 3600, "step": 5 },
+      { "key": "scale", "type": "number", "label": "Scale", "min": 0.5, "max": 2, "step": 0.1, "defaultValue": 1 },
+      { "key": "style", "type": "enum", "label": "Style", "options": ["compact", { "value": "wide", "label": "Wide" }] },
+      { "key": "folder", "type": "path", "label": "Folder" }
+    ]
+  }
+}
+```
+
+```yaml
+schema:        up to 32 rows; a row that is not an object, repeats a key, or names an unknown type is dropped (its stored value is kept)
+key:           [A-Za-z_][A-Za-z0-9_]{0,63}; `id` and the JavaScript prototype names are reserved
+label:         max 64, defaults to the key
+description:   max 160, shown muted under the row
+group:         max 64; consecutive rows sharing a group get one muted heading above the first of them, and the filter matches the group name. A QML settings Component gets the same heading from `ui/SettingsGroup.qml` (`context.ui.url("SettingsGroup")`, `title` property) placed before its rows
+string, path:  maxLength defaults to 256 (cap 4096); placeholder max 64; control characters are stripped from values
+integer:       min, max within plus or minus 1e9, step >= 1 (default 1); values are floored and clamped
+number:        finite min, max, step > 0 (default 0.1); values are clamped
+enum:          1 to 32 options, each a string (max 64) or { value, label }; a value outside the options falls back to the default
+boolean:       strings "true" and "false" are accepted; anything else is coerced with !!
+defaultValue:  the row's defaultValue, then defaults[key], then the type's zero (empty string, the in-range value nearest 0, false, the first option)
+```
+
+The rows render as the same widgets the rest of blade settings uses: a toggle
+for `boolean`, inline choices for an `enum` with up to four options and a
+picker above that, minus and plus buttons around an editable field for
+`integer` and `number`, and an inline field for `string` and `path`; a `path`
+row has a trailing button that fills in the selected path from the files
+blade. Rows show up in the settings search by label, description, and option
+labels. The example extension's clock declares a format, a caption, and a scale
+this way; see `examples/mash2rafi.blade-example`.
+
+## Script actions
+
+A extension can contribute rows to the file actions menu without any QML: list
+them under `extensions["mash2rafi.omablade/action"]`. Each row runs an argv,
+no shell, with the selection in the environment.
+
+```json
+{
+  "extensions": {
+    "mash2rafi.omablade/action": [
+      {
+        "id": "open-in-herdr",
+        "title": "Open in herdr",
+        "glyph": "󰑶",
+        "description": "Opens the folder as a herdr space",
+        "contexts": ["dir", "root"],
+        "argv": ["scripts/open-in-herdr", "--space"],
+        "paths": "env",
+        "confirm": false,
+        "timeout": 60,
+        "detach": false,
+        "output": "notice"
+      }
+    ]
+  }
+}
+```
+
+```yaml
+id:          required; [A-Za-z0-9][A-Za-z0-9._-]*, max 64; the row key is <providerId>/<id>
+title:       required; 1 to 64 characters
+glyph:       optional, max 16 characters
+description: optional, max 160; shown as the row tooltip
+contexts:    required; any of file, dir, selection, root, none
+argv:        required; 1 to 32 items, 1024 bytes each, 8 KiB in total
+paths:       env (default) or append; append adds every target as a trailing argument
+cwd:         omit for the extension directory; root or target selects another working directory
+confirm:     ask before running; default false
+timeout:     1 to 900 seconds; default 60; ignored when detach is true
+detach:      fire and forget, no capture, no exit code; default false
+output:      notice (default) or silent
+```
+
+`contexts` decides when the row shows and what the script gets: `file` and
+`dir` want exactly one entry, `selection` any number up to 256, `root` the tree
+root, `none` nothing. `argv[0]` must be a file inside your extension with the exec
+bit; the backend re-reads your manifest at run time, so nothing the UI holds
+can change what runs.
+
+Selection environment: `OMABLADE_SELECTION_JSON` (empty past 64 KiB, with
+`OMABLADE_SELECTION_FILE` naming a `0600` file instead; the unused one is
+always empty, never missing), `OMABLADE_SELECTION_COUNT`, `OMABLADE_ROOT`,
+`OMABLADE_TARGET`, `OMABLADE_CONTEXT`, `OMABLADE_ACTION`,
+`OMABLADE_SOURCE`,
+`OMABLADE_STATE_DIR`, `OMABLADE_CONFIG_DIR`, `OMABLADE_CLI`,
+`OMABLADE_HOST_VERSION`, `OMABLADE_SCREEN`. Each selection entry is
+`{ path, name, dir, symlink, size, mime }`, where `dir` says the entry is a
+directory. The cwd is the extension root unless `cwd` says `target` or `root`.
+Write to the state dir, never next to your manifest; a package-managed extension
+root may be read only. Provider identity variables are defined in
+[src/actions/run.rs](src/actions/run.rs).
+
+Output: the first line of stdout and the exit code show as a notice in the
+blade; the run lands in `audit.jsonl` (`omablade log --command action-run`).
+Set `detach: true` for anything that opens a window. Timeouts are 1 to 900
+seconds. Up to four captured actions run at once, and the same captured action
+cannot start again until it finishes. Detached actions return as soon as they
+launch and share the backend's separate, bounded detached-child pool.
+
+From a terminal: `omablade actions` lists what the menu would show, and
+`omablade action <key> [PATH]... --yes` runs one and prints its tail. Its
+`--wait` accepts 1 to 905 seconds and defaults to the action timeout plus five
+seconds. The terminal path list is also capped at 64 KiB before it crosses the
+shell IPC boundary.
+
+The example extension ships one: `dump` writes its environment to
+`last.json` in the module state dir, so
+`omablade action mash2rafi.blade-example/dump . --yes` shows you exactly
+what a script receives.
+
+Your own actions without a extension: drop `<id>.json` files in
+`~/.config/omarchy/omablade/actions/`, one action object per file with the
+file name equal to the id. Their keys start with `user/` and they may name a
+program on `PATH` or an absolute path. Graduate them into a extension when they
+are worth shipping.
+
+## Starting from the template
+
+```bash
+omablade extension template acme.omablade-weather
+cd acme.omablade-weather
+omablade extension image --png
+```
+
+The command writes into `./<id>` (or the directory you name), refuses a
+directory that already has files unless `--force` is passed, and touches
+nothing else. `--output json` returns the file list and the next steps as a
+document.
+
+```yaml
+DIRECTORY:      where to write; defaults to ./<id>
+--name:         extension name for tabs and the README; defaults to the module id in title case
+--module:       blade module id; defaults to the extension name without its omablade- prefix
+--author:       manifest author and LICENSE holder; defaults to $USER
+--description:  one line for the manifest and the module picker
+--repository:   git URL in the README install command; defaults to https://github.com/<publisher>/<name>.git
+--force:        write into a directory that already has files, replacing only the template's own files
+```
+
+What it writes:
+
+```yaml
+manifest.json:                         one blade module placed beside Files, hostContract 2, two declared settings
+Provider.qml:                          the shared runtime Omablade creates for a native install; attach takes files from the context when it was not given them
+Service.qml:                           the same provider for an Omarchy plugin install, where the shell builds it, plus the host guard loader
+HostGuard.qml, HostGuard.js:           the missing-host guard the satellites carry; with no host it shows the `omarchy plugin remove` command for the extension
+blades/Module.qml:                     a FocusScope that shows the selection and the provider's state (Loading… until the provider is ready), routes Tab, Esc, Enter and e, and exposes shortcuts
+assets/omablade-logo.png:             the logo the host guard tints
+README.md, ARCHITECTURE.md, docs/agent-guidelines.md, docs/agent-written/README.md, LICENSE, .gitignore
+tests/run, tests/tst_module.qml, tests/tst_host_guard.qml, tests/imports/:  the local gate, with a qs.Commons stub so the module loads offline
+```
+
+The template carries no interpreter. Three verbs of the host binary do the
+work the scaffold used to ship as scripts:
+
+```yaml
+omablade host-status --companion <id>:  reports host availability within a two-second deadline
+omablade extension check <dir>:         the manifest-shape and host-guard rules tests/run enforces; defaults to the working directory
+omablade extension image:               writes assets/omablade-extension-logo.svg with the extension name outlined under the wordmark; --png and --host-logo rasterize with rsvg-convert
+```
+
+Register a generated checkout under the native extension directory described
+above, then rescan; its module declares `defaultPlacement: "beside-files"` and
+joins the Omablade tab's section. Use `omablade extension check .` and
+its generated `tests/run` gate before registration. The stable `omablade`
+launcher must be available on `PATH` for CLI and host checks.
+
+`omablade extension image --name "Agent Skills"` outlines the extension name
+under the Omablade wordmark; `--png` renders through `rsvg-convert`.
+
+## Writing one, step by step
+
+This file was written by an agent.
+
+The quickest way to a working panel is a module of your own:
+
+1. `omablade module new hello --add right` writes `blade.json` and a working
+   `Module.qml` into `~/.config/omarchy/omablade/modules/hello/` and places it
+   on the right blade. The starter shows the file selected in Files, opens it
+   with Enter, edits it with `e`, has a drag handle, and moves focus with Tab
+   and Esc like every other module
+2. Edit `Module.qml`, then run `omablade module reload`. Omablade reloads its
+   QML in place, keeping your layout and open folder, and refuses while a
+   file operation is still running
+3. `omablade extension check ~/.config/omarchy/omablade/modules/hello` lists
+   every problem it finds, each with what to change
+
+To share it, make it an extension with a manifest:
+
+1. `omablade extension template acme.omablade-hello --install --add right`
+   scaffolds the full extension (manifest, provider, host guard, tests and
+   docs) straight into Omablade's extension folder and places its module.
+   Without `--install` it is written to `./acme.omablade-hello` instead
+2. `omablade extension install DIRECTORY --add right` copies any checked
+   extension into the extension folder, rescans, and places its first module.
+   It refuses a folder with problems or symlinks, and asks for `--replace`
+   before overwriting an installed copy. When the module already appeared
+   through `defaultPlacement`, it says where instead of adding a second copy
+3. Delete the user-module copy once the extension works, so the ids don't
+   shadow each other
+
+`omablade extension check` accepts three kinds of folder: one made from the
+template, which also gets the host guard and banner checks; a hand-written
+extension with `manifest.json`; and a user module with `blade.json`. Every
+manifest module must declare `"provider"`: `null` when the module keeps no
+shared state, or the path to its `Provider.qml`. A module that omits it does
+not load, and its blade says exactly that.
+[examples/mash2rafi.omablade-networkstorage](examples/mash2rafi.omablade-networkstorage/)
+is a complete hand-written extension.
+
+## Rules the host enforces
+
+- a definition must be a bounded, regular JSON file with a safe relative entry path; anything else is skipped silently
+- at most 128 modules in total; ids, names, and descriptions are length-capped and stripped of control characters
+- contributed modules exist only while their provider remains registered and enabled
+- a module with `hostContract` above what the host supports is shown as incompatible, not loaded
+- singleton modules can't be added twice; the picker greys them out
+
+What the host does not do is sandbox your QML. Once a definition is accepted,
+the entry file runs with the same authority as the shell. So review
+third-party modules before enabling them: plain-text rendering (no
+`RichText` from filesystem values), bounded models, no `Process` of their own
+unless you understand why, and proper teardown. SECURITY.md has the full
+checklist.
+
+## Satellites and artifact bins
+
+The built-in Skills, Memory, Hooks and MCP modules demonstrate the inventory
+pattern extensions can reuse:
+
+- use `context.service("files").contextPath` as the exact folder scope; by default it is the selected folder, falling back to the opened folder for a file selection, while Omablade's `projectContext` setting can switch it to the nearest Git root
+- list user-scope items always, project-scope items when a root resolves
+- Enter uses the module's activation handler; file-backed items open through `openDefault`, folders expand or navigate, and `e` uses `openInEditor`. `r` reveals the source location
+- disabling an item moves it into an artifact bin: `ui/ArtifactBin.qml` delegates accepted changes to the core, and Omablade Trash also lists and restores those records
+- the agents column is `ui/ArtifactTree.qml` rendering `ui/AgentStrip.qml` (one `ui/AgentIcon.qml` per installed agent, accent when applied, muted when not). Feed it `installedAgents` (from `context.service("files").installedAgents`) and an `appliedAgents(item)` function; it emits `agentToggled(item, agentId, on)` and `agentsAllRequested(item, on)`, where `on` is the state the strip wants for every agent. Load any of the three through `context.ui.url(...)` to draw agents elsewhere
+- metric columns come from `context.metrics.options([...])`, so "Tokens (estimated)" is spelled once, in the host
+
+Bind `ArtifactBin.context` to the module's context, just like the tree. Its
+confirmation dialog shares `context.hostWindow.actionKeys`; otherwise opening a
+dialog can strand the tree's key-release state and suppress the next action.
+The dialog returns focus to its live opener. Bin listing requests are canceled
+on teardown; accepted changes belong to the core's `ArtifactActionController`,
+so removing the pane cannot abandon their completion.
+
+This file was written by an agent.
+
+For logical records, supply `helperRoute` (`provider`, `directory`, `helper`)
+and a `removalArguments(item)` adapter, and declare `hostContract: 3`. Declare
+`prepare-remove`, `remove-prepared`, `restore` and `discard` as write methods;
+preparation persists private recovery even though it preserves the source.
+
+Core saves a visible bin entry before requesting preparation and passes a fresh
+32-character hexadecimal `--transaction-id`. Preparation uses that ID as its
+`recordId`; removal reuses the same record and must compare the complete payload.
+Each different transaction owns different recovery, even for identical content.
+Core enforces the 64 KiB wire/input limit before invoking removal. Uncertain
+completion keeps recovery. Restore is idempotent and refuses conflicting later
+edits. An interrupted preparation can restore using `--record-id ID --json`
+without a caller payload; the helper must read its own trusted record.
+
+`discard --record-id ID --json` durably removes that private record and treats an
+already absent ID as success. Legacy entries additionally pass `--payload-stdin`
+for bounded matching against stored records. Core calls discard before deleting
+its visible entry; a failure keeps it visible. Restore completion is checkpointed
+before discard, so cleanup retry does not repeat the source write. Unused undo
+must not expire while its bin entry remains. A live companion registers a plain
+route descriptor, never a disposable QML callback. Every helper request requires
+the provider to be installed and explicitly enabled in the current catalog.
+Contract 3 gates this protocol: older hosts display an update requirement.
+
+### Shared tree wiring
+
+Loading `ArtifactTree` supplies rendering, grouping, metrics, filtering,
+navigation, folder expansion, cursor visibility, and file-action integration.
+The module still has to bind its context and data, and connect domain actions:
+
+```qml
+Loader {
+  source: module.context.ui.url("ArtifactTree")
+  onLoaded: {
+    item.context = Qt.binding(function() { return module.context })
+    item.items = Qt.binding(function() { return module.items })
+    item.view = Qt.binding(function() { return module.view })
+    item.query = Qt.binding(function() { return module.query })
+    item.activated.connect(function(entry) { module.openEntry(entry) })
+    item.revealed.connect(function(entry) { module.revealEntry(entry) })
+    item.changed.connect(function() { module.refresh() })
+    item.focusNextRequested.connect(function() { module.context.focusNext() })
+    item.focusPreviousRequested.connect(function() { module.context.focusPrevious() })
+    item.dismissRequested.connect(function() { module.context.closeBlade() })
+  }
+}
+```
+
+| Behavior | Owner and required wiring |
+| --- | --- |
+| Navigation and cursor | `ArtifactTree` uses the host key router, preserves row identity across refreshes, keeps the scroll position anchored to the first visible row while rows are replaced, and scrolls the cursor into view only when the cursor lands on a different row. |
+| Scroll ruler | `ArtifactTree` draws `ui/MarkedScrollBar.qml` along the right edge: a thin accent thumb plus coloured position marks. Marks come from `rowMark(item)`, which defaults to the item's `gitStatus` or `git_status` field (also read from `item.source`) and is coloured through the files service `gitStatusColor`. Override `rowMark` to mark rows by another status letter (`D`, `U`, `M`, `A`, `?`, `R`, `C`) or return `""` for none. Marks for rows outside the viewport render at half opacity, and the Files setting "Git marks on the scroll ruler" (`scrollMarks` in the state document) hides them in every tree. `ui/ListAnchor.qml` is loadable through `context.ui.url("ListAnchor")` for a module that renders its own list; the shared tree already owns its scroll marks. |
+| Module shortcuts | An optional `keyHandler(event, repeated)` runs before generic tree actions. Return `true` only for a handled key; acknowledge repeated action keys without running the action again. Shifted domain shortcuts such as Git's Diff/Fetch remain available. |
+| Search options | Bind both `caseSensitive` and `regex` from the search field to the tree. `PaneSearchField.showDeepOption` defaults to `false`; enable it only when `deepToggled` has a working whole-root search handler. |
+| Search visibility | Give `PaneSearchField` the module `context` (or Files `service`). It inherits `autoHideSearch`, off by default. Call `reveal()` for the configured search action, normally `/`; it focuses and selects the query. When enabled, the bar collapses on focus loss without clearing the query. Escape should clear the query and return focus to the tree. Keep the field loaded and let its visibility size the containing Loader; do not implement a separate visibility toggle. |
+| File actions and dragging | A live row's `path` identifies the filesystem object being acted on. `fileActionsFor(item)` can deny whole-file actions and dragging for semantic records, missing files or inline definitions. A configuration filename is not the identity of one record inside it. |
+| Editing a definition | Set `editPathFor(item)` to an explicitly resolved, unredacted source path. Editing does not require enabling whole-file rename, cut, or Trash. |
+| Disabled items | `kind: "bin"` rows route activation and the context menu to `actionRequested`. Their historical paths cannot be edited, dragged, copied as files, or passed to ordinary file actions. |
+| External changes | `changed` covers Omablade history operations affecting live paths. Providers must also subscribe to their bounded source directories for external edits and newly created artifacts. |
+
+For real directory rows, set `expandableItems: true` and
+`loadFolderChildren: true`. The tree then uses `ArtifactDirectories` for lazy
+`children-batch` requests, the Files row converter, and watches of expanded
+directories. Nested folders, hidden-file changes and external edits share this
+path; do not supply a second child cache or request queue in the module.
+Collapse or view teardown releases hidden caches and callbacks. Folder reads
+are batched eight at a time, with at most 256 expanded directories and 1,000
+entries per folder. `folderError` reports read, watch and coverage limits; users
+can open a capped directory in Files. Call `refreshFolders()` on explicit
+refresh to retry incomplete watches. Custom non-filesystem trees can instead
+provide `childrenFor` and handle `folderToggled` with `loadFolderChildren` off.
+
+`zo`/`zc` expand/collapse the selected folder or group without moving the cursor.
+`zO`/`zC` (also `Shift+Right`/`Shift+Left`) recursively expand/collapse that
+branch and clear its descendants' expansion on collapse; siblings stay untouched.
+`zR`/`zM` apply to the whole tree. Files and historical bin rows ignore
+selected-folder fold commands. Recursion uses the existing
+loaders, skips descendant directory symlinks, and stops when hidden, replaced,
+or explicitly collapsed. A pass is capped at 256 expansion/load steps, 20,000
+visible rows and 64 levels; limits appear in `folderError`. `l`, Right and `o`
+enter a live folder in Files; `h`/Left select the enclosing folder or group in
+an artifact inventory. Enter retains the module's ordinary activation.
+The shared `z` prefix cancels on Escape or focus loss and never captures text
+input. `Ctrl+B` pages up, as in the Files pane.
+These bindings come from the Files service's `keybindings.plan`; modules
+inherit user overrides without their own loader or key-sequence parser.
+`context.service("files").keybindings.label(action)` returns the effective
+binding label for a module's shortcut guide. See
+[keybindings](docs/agent-written/keybindings.md) for the configuration format.
+
+`ArtifactTree` is not a second `TreePane`: semantic records need their own
+activation, apply/disable, and batch-action rules. Share the presentation and
+interaction primitives; keep domain mutations in the provider. Do not copy
+the Files pane's filesystem deletion or multiselection behavior onto semantic
+records without an explicit capability contract.
+
+Treat filesystem `path` and `editPathFor` values as opaque identities. They may
+be local file URIs carrying non-UTF-8 Unix names. Pass them to the shared host
+actions unchanged; labels and `relative` text are for display, not reconstruction.
+The [path contract](ARCHITECTURE.md#filesystem-path-identity) covers native
+providers and the shared QML helpers.
+
+A helper entry may be any executable that speaks JSON over stdin and stdout.
+The backend runs the declared `entry` with the method and its arguments, writes
+private input to stdin, and reads one JSON document from stdout. The contract
+names no language and requires no interpreter.
+
+Treat path values crossing that boundary as opaque identities. Parse them at
+command-line and undo-input boundaries, keep the native bytes inside filesystem
+operations, mark response paths as native, and encode them for the wire before
+serializing JSON. Use display text only for labels. Structured undo payloads
+must explicitly encode their source paths and be representable before changing
+the source; they are not display text. Redacted MCP source labels remain
+non-actionable.
+
+Commands the backend spawns run under a supervisor that accepts bounded byte
+input, output caps and a deadline, and that owns the command's process group.
+TERM waits for cleanup before the request completes, and abrupt death of the
+request still triggers group cleanup. Independently detached groups, including
+credential agents, have a separate lifetime. They cannot hold the output reader
+indefinitely. This is process ownership, not a sandbox for repository hooks or
+extensions.
+
+Configuration writers retain a bounded, byte-exact preimage and delegate
+publication to the native write path. That path checks file identity and
+original bytes, uses descriptor-relative quarantine and no-replace publication,
+and keeps recovery intents on interruption. New files are private `0600`;
+existing permission bits are preserved. Link creation is exclusive, and unlink
+checks the captured symlink identity. External helpers reach the same path
+through a private stdin-only adapter that allows up to 8 MiB of configuration
+with a 24 MiB transport cap; it does not widen the resident helper or
+artifact-record limits.
+
+Send private text through stdin, not command arguments. Git's commit path
+accepts at most 64 KiB and closes stdin after writing; Git receives the same
+message through `-F -`. Invalid input is refused before optional staging.
+
+A provider service gets the same two directories, keyed by its extension id
+instead of a module id, through the files service:
+
+```
+var omablade = shell.serviceFor("mash2rafi.omablade")
+if (omablade) omablade.moduleDirs(manifest.id, function(dirs) { if (dirs.ok) root.stateDir = dirs.stateDir })
+```
+
+`omablade module-dirs <id>` prints the same two paths with the shell down.
+
+Companions should also follow the singleton-service ownership rule above as
+they adopt this host contract: one provider service owns shared discovery and
+mutation work, while each blade module instance stays visual and lightweight.
+
+If you build something that manages files on the user's behalf, use the
+artifact bin rather than deleting. It's what makes "oops" recoverable.

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "id": "{{PLUGIN_ID}}",
+  "name": "Omablade {{PLUGIN_NAME}}",
+  "version": "0.1.0",
+  "author": "{{AUTHOR}}",
+  "license": "MIT",
+  "description": "{{DESCRIPTION}}",
+  "kinds": [
+    "service"
+  ],
+  "entryPoints": {
+    "service": "Service.qml"
+  },
+  "extensions": {
+    "mash2rafi.omablade/blade": [
+      {
+        "id": "{{MODULE_ID}}",
+        "name": "{{PLUGIN_NAME}}",
+        "glyph": "",
+        "description": "{{DESCRIPTION}}",
+        "entry": "blades/Module.qml",
+        "provider": "Provider.qml",
+        "singleton": true,
+        "minHeight": 120,
+        "defaultPlacement": "beside-files",
+        "hostContract": 2,
+        "settings": {
+          "defaults": {
+            "caption": "",
+            "showSelection": true
+          },
+          "schema": [
+            {
+              "key": "caption",
+              "type": "string",
+              "label": "Caption",
+              "description": "Shown under the selection; empty shows the key hint",
+              "maxLength": 64,
+              "placeholder": "Hello from {{PLUGIN_NAME}}"
+            },
+            {
+              "key": "showSelection",
+              "type": "boolean",
+              "label": "Show the selected path"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

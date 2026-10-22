@@ -1,0 +1,552 @@
+# Security
+
+This file was written by an agent.
+
+---
+
+Omablade runs as a native Quickshell application.
+Its QML and Rust binary run unsandboxed with the authority of the desktop user.
+That authority intentionally includes reading user-selected filesystem metadata
+and content and mutating paths after explicit actions.
+
+This document describes implemented boundaries; it is not a claim that the
+project or every dependency has received an independent security audit.
+
+## Trust model
+
+Treat these inputs as untrusted data:
+
+- filenames, symlink targets, file metadata, Git output, desktop files, and
+  mounted filesystems;
+- clipboard data, picker options, public CLI arguments, and IPC strings;
+- Freedesktop Trash metadata and directory-size indexes;
+- user blade definitions and installed extension manifests.
+
+User and extension QML modules are executable code, not data. Once loaded,
+they share the same Quickshell process and user authority as Omablade.
+The native view does not sandbox extensions or protect against other programs
+running as the same user. Extension review remains the user's responsibility.
+`omablade extension install` checks the manifest and refuses symlinks before
+copying, but it does not review code. Omablade's own QML owns exactly one
+process, the resident backend; extensions are not held to that rule, and the
+Network Storage example under `examples/` runs its helper through its own
+`Process` objects. `omablade module reload` reloads all loaded QML, including
+extensions, in the running process.
+
+This file was written by an agent.
+
+Local browsing and file operations initiate no network request. Explicit SFTP
+connections use GIO and existing SSH authorization; interactive credential and
+host-key prompts are refused. Optional tailnet discovery queries the installed
+Tailscale client. The optional
+update check reads remote ref IDs with `git ls-remote`; it downloads no Git objects
+and changes no refs or checkout files. Each remote check has a 20-second deadline,
+64 KiB stdout and 16 KiB stderr caps, and at most 512 returned refs. The same
+request includes `v*` release tags; there is no additional endpoint or content
+request. Version strings are valid SemVer, capped at 64 bytes. Existing local
+manifest objects take precedence; otherwise only the highest release tag resolving
+(lightweight or annotated) to the selected remote commit supplies a version.
+Tags rely on the publisher's convention that their version matches the manifest;
+without a local object, Omablade cannot independently verify that convention.
+Missing or invalid versions stay unknown; same-version and older-version changes
+are distinguished. Local history comparisons use existing objects only, with
+promisor lazy fetching disabled. Automatic checks run at most once per six hours;
+the attempt is saved before requesting the network.
+Set `"checkUpdates": false` in extension settings to disable automatic checks.
+
+Native bootstrap installation downloads a release manifest and an architecture-
+specific archive, checks its SHA-256, requires matching version and target, then
+verifies its payload inventory before installation. The checksum is supplied by
+the same publisher as the archive; it is not a digital signature. Native payloads
+live under `$XDG_DATA_HOME/omablade/installation`, with a launcher in
+`~/.local/bin/omablade`. The installer checks required Arch/Omarchy packages,
+drains an existing native runtime and atomically selects a verified payload;
+it never installs missing packages. There is no runtime build or first-run
+executable download. Maintainer
+builds use the pinned Rust toolchain and locked dependencies; `tests/run`
+checks the bundled checksum, source fingerprint, and byte-identical rebuild.
+These checks establish correspondence, not trust in the source or publisher.
+
+Anyone can establish that correspondence themselves, without trusting the
+publisher's checksum, because the bundle is a reproducible build:
+
+```bash
+git clone https://github.com/mash2rafi/omablade
+cd omablade && git checkout <commit>
+tools/bundle verify
+```
+
+That rebuilds the backend with the toolchain pinned in `rust-toolchain.toml`
+against `x86_64-unknown-linux-musl`, with locked dependencies, static linking,
+no stripping, and the checkout, cargo home and target directories remapped out
+of the binary, then compares the result byte for byte with the committed
+`omablade-bin` and fails if they differ. The build does not depend on where
+the repository sits or which machine runs it, so a matching rebuild shows the
+shipped bytes are that commit's source. The native release archive carries this same verified backend alongside its
+runtime payload inventory.
+
+The update checker reads branch/tag IDs and local repository state; it never
+merges, resets, builds or modifies a checkout. Native updates use the verified
+payload installer and its drain/activation protocol.
+
+This file was written by an agent.
+
+Skills, Memory, Hooks and MCP ship with Omablade. The backend has no companion
+repository installation command.
+
+Omablade sends no telemetry, uses no privilege elevation, and does not install
+system packages or modify systemd, sudoers, or udev configuration. Explicitly
+enabled desktop roles can change user Hyprland bindings, autostart, MIME defaults
+and portal preferences as described below.
+
+## Dependencies and previews
+
+Omablade does not install packages or use elevated privileges. An up-to-date
+Omarchy installation supplies its desktop stack: Bash, Quickshell, Hyprland/`hyprctl`, `gio`,
+`gtk-launch`, `xdg-mime`, `xdg-terminal-exec`, `omarchy-launch-editor`,
+and Nautilus. Required runtime versions are recorded in
+[the runtime contract](packaging/runtime.json). The x86-64 backend is bundled, so
+installation and updates need no Rust toolchain. Source builds use the pinned
+maintainer toolchain; the in-app update check does not build or apply updates.
+
+Optional integrations are detected at runtime and fail closed when absent.
+`udisksctl` mounts, unmounts and ejects volumes; it is tried first with
+`--no-user-interaction` and retried without it only when udisks2 answers
+`NotAuthorizedCanObtain`, so the desktop's polkit agent is what prompts and
+Omablade never handles the password. Volume enumeration reads
+`/proc/self/mountinfo`, `/sys/class/block` and the udev database under
+`/run/udev/data`, all read-only and all unprivileged; a volume marked
+`UDISKS_IGNORE` is never listed. An action only accepts a device path that
+enumeration already returned.
+Network Storage runs `gio mount`, `gio list` and `rsync` from the backend, with
+arguments only, never a shell. A server address must have a URI scheme and no
+leading dash or control characters, paths must be absolute without `..`, and
+un-sync removes only copies inside `~/.sync`, never anything on a share. Sync
+and un-sync refuse any symbolic link between `~/.sync` and the copy, sync
+refuses a folder that holds `~/.sync`, and pause, resume and cancel signal a
+process group only after `/proc` confirms it is Omablade's own sync runner.
+Mounting goes through gvfs with no terminal, so it uses credentials already in
+the keyring or the address; Omablade never asks for or handles a password.
+Directories passed to the shared default-open primitive stay inside Omablade;
+Nautilus is reserved for an explicit reveal request. `uwsm-app` is used when
+available to launch that reveal through the desktop's application-session
+manager. When `zoxide` is present, Omablade records opened directories with
+`zoxide add`, updating zoxide's normal per-user database.
+Eligible media previews load automatically on selection or in the media grid
+and accept regular, non-symlink files up to 16 MiB. A short-lived `omablade`
+child renders a bounded PNG into `~/.cache/omablade/thumbnails/`; the shell
+displays that PNG. PNG, JPEG and WebP use the image crate. Optional FFmpeg tools
+decode additional image formats and static video posters under the limits below.
+
+Native removal deletes owned runtime files but preserves your layout,
+settings, history, audit log, and disabled-module bins under
+`~/.config/omarchy/omablade/`, `~/.local/state/omarchy/omablade/`, and
+`~/.local/share/omablade/`. Delete those directories manually only if you also
+want to erase that data. Companions also retain private recovery under
+`$XDG_STATE_HOME/omablade/mcp-recovery` and `hooks-recovery` (normally beneath
+`~/.local/state/`). Uninstall preserves these copies too. Files in the normal Freedesktop Trash are not
+owned by Omablade and are never removed during uninstall. Native removal uses
+the installed payload's `tools/native remove`, reverses owned desktop roles,
+drains the app and removes the owned launcher/runtime. It preserves user data
+and newer user changes. Package removal uses the package manager; desktop roles
+must be disabled and the native runtime drained first. See
+[native installation](docs/agent-written/native-install.md) for the commands.
+
+## Resident backend boundary
+
+Native mode uses one resident authority and an `authority.sock` Unix socket
+under `$XDG_STATE_HOME/omarchy/omablade`, protected by an owner-checked state
+directory and mode 0600 socket. Up to 32 client connections share the bounded
+protocol. The authority lease and storage identities prevent simultaneous
+writers. Native views connect to that authority rather than owning
+independent persistence. A native view may close while an operation continues;
+updates and removal use the drain protocol to flush state and finish safely.
+
+The server requires a hello handshake and keys work by a bounded `(id,
+generation)` pair. It bounds protocol lines, response bytes, argument count,
+identifiers, remembered request keys, concurrency, and subscription paths.
+Requests have bounded deadlines and cooperative cancellation; filesystem
+subscriptions are bounded and close on cancellation or EOF. Server shutdown
+stops admission and drains accepted work before releasing its lease. View EOF
+cancels reads and subscriptions. Owned window borders are restored when the
+last view disappears, including changes completed by later operations.
+
+The socket does not protect against code able to debug or inspect processes
+running as the same user. The public `omablade` CLI exposes its own command-line
+arguments through ordinary process metadata.
+
+Live public commands use bounded Quickshell IPC. Backend-backed public
+commands route through the selected resident authority, with deadlines and
+independent output budgets; they do not place a second backend payload in a spawned argv.
+The hidden `_backend` compatibility surface is not a security boundary or a
+stable public API.
+
+Quickshell IPC is split between the read-only `mash2rafi.omablade` target and the
+mutating `mash2rafi.omablade.control` target. Neither status surface serializes
+complete blade module state. The control target accepts file operations directly;
+permanent Trash deletion still requires an explicit `--yes` argument through the
+public CLI.
+
+These IPC targets are privileged desktop-integration APIs, not a file-selection portal.
+Read responses can disclose private paths, selection, search, and history, and
+control calls alter live Omablade state. Do not expose or proxy them to
+untrusted applications or extensions. Use a real desktop portal for sandboxed
+file selection. The separate opt-in native chooser implements a portal backend:
+only the current `org.freedesktop.portal.Desktop` bus owner may offer requests,
+and cancellation is tied to that sender. It does not expose the control IPC to
+portal callers. Caller-supplied choices are currently unsupported; foreign
+window parenting and modality are not implemented.
+
+## Filesystem mutations
+
+Copy, move, rename, create, and Omablade's own removal helpers use
+descriptor-relative Linux filesystem operations:
+
+- absolute paths are normalized and their parent directories are opened from
+  the filesystem root with `openat2` containment/anti-magic-link flags;
+- security-sensitive walks and the safe fallback use component-wise
+  `openat(..., O_NOFOLLOW)`;
+- leaf files are opened/stat'ed without following symlinks when identity or
+  type matters;
+- publication uses `renameat2(RENAME_NOREPLACE)` so an existing target is not
+  silently overwritten;
+- creates use exclusive no-follow opens or `mkdirat`;
+- recursive removal is descriptor-bound and rechecks entry identity.
+
+Unix filename bytes are preserved across the JSON/QML boundary using local
+file URIs when a name is not UTF-8. Escaped display labels are separate from
+actionable paths; a raw byte and a Unicode replacement character cannot select
+the same file through lossy decoding. See the
+[path contract](ARCHITECTURE.md#filesystem-path-identity).
+
+Copy operations build an item inside a private `0700` staging directory in the
+destination parent, preserve regular-file/directory metadata, xattrs, and
+symlinks, verify the source did not change, then publish it atomically without
+replacement. Cancellation removes the private stage. Same-filesystem moves use
+no-replace rename. Cross-filesystem moves first quarantine the source under a
+random sibling name, copy and publish safely, then remove the quarantine; on a
+copy failure Omablade attempts to restore the original source name.
+
+These controls prevent common symlink-swap, partial-publication, and accidental
+overwrite failures. They cannot make a multi-item operation globally atomic:
+already completed items remain reported if a later item fails or the operation
+is cancelled.
+
+Archive extraction uses `bsdtar`. A private uncompressed PAX snapshot is bounded
+by a 1 GiB file limit before extraction. Its headers are checked before destination
+writes: at most 50,000 headers, 1 GiB logical expanded bytes including sparse sizes,
+and 64 KiB per metadata header. The snapshot and extracted tree can together use
+up to approximately 2 GiB, plus bounded filesystem metadata; special files are
+refused. Decoder address space is limited to 1 GiB and commands to 300 seconds. New or empty destinations are populated in a
+private stage and published only after successful extraction. Failed or
+cancelled extraction leaves the destination unchanged. An explicit merge into
+a populated directory writes directly to that pinned directory, can replace
+members, and is not undoable; a failure reports the destination in `paths` and
+sets `partial`. Missing destination parents are created inside the stage and
+published together, so failed extraction does not leave empty parent folders.
+
+## Private state and undo
+
+The private JSON state, config, journal, and artifact helpers create or tighten
+their directories to `0700` and files to `0600`. Their reads open once with
+`O_NOFOLLOW | O_NONBLOCK`, verify same-user regular files, and bound content before
+materialization. Atomic writes use exclusive same-directory temporary files,
+flush and `fsync`, atomic rename, and directory `fsync`. Advisory journal
+locking uses a separately verified private file.
+
+Audit append, rotation, and reads share a cross-process private lock. Existing
+files must be same-user regular files with private permissions. Complete JSON
+lines are appended and synced; reads report malformed records from older or
+damaged logs. Logging errors do not roll back the file operation, so the audit
+log is not a transactional or exhaustive history.
+
+Regular-file read boundaries use nonblocking opens before verifying type, so
+FIFOs are rejected without waiting for a writer. Network or unhealthy
+filesystems can still delay kernel I/O despite cooperative cancellation.
+
+The undo/redo journal retains at most 100 entries. Transfers checkpoint after
+32 completed items, when a completion finds that 250 ms have elapsed, and at
+the end of the operation. An abrupt exit can leave completed items outside the
+last saved checkpoint.
+
+A completed create or rename returns its path or mapping even if journaling
+fails, with a separate `journal_warning`. Multi-item failures likewise report
+completed work. A failure response is not a general promise that nothing changed.
+
+Recovery sweeps private operation intents at backend startup. Each operation
+holds a kernel lock on its published intent; recovery skips locked intents
+and holds the same lock while recovering abandoned work. Quarantine refuses
+to move a source if it cannot publish its intent. `omablade doctor` uses a
+`serve --no-recover` handshake and does not recover or audit operations.
+
+Undo of a copy or create checks the destination's device and inode, file type,
+size, modification time, and change time. Directory fingerprints incorporate
+each descendant's relative name, identity, permissions, size, modification
+time, and change time across at most 50,000 entries. These are metadata
+fingerprints, not content hashes. Incomplete scans and older aggregate-only
+fingerprints require explicit force, as do detected edits. Force retains the
+identity, collision, containment, and
+no-follow checks. Corrupt journals are not executed and may be quarantined for
+diagnosis.
+
+State safety does not replace backups. A crash, hardware failure, filesystem
+bug, or user-authorized forced/destructive action can still lose data.
+
+## Desktop roles
+
+The native app writes desktop-integration files only when the person turns a
+role on in Settings or runs `omablade native roles enable`. Nothing is
+enabled by installation, update, packaging or first launch. The owned files
+are the application, autostart, D-Bus service and portal descriptor entries
+under `$XDG_DATA_HOME` and `$XDG_CONFIG_HOME` listed in
+`docs/agent-written/native-install.md`, plus one key in `mimeapps.list` and
+`portals.conf` and one marked line in Hyprland's `bindings.lua`. Every
+`Exec` names the stable launcher, never a versioned payload. Launcher paths are
+quoted for service-file parsing; desktop entries also escape field codes and
+use `/usr/bin/env --` so a literal percent in the launcher path does not confuse
+GIO's executable lookup.
+
+The receipt `$XDG_CONFIG_HOME/omarchy/omablade/desktop-roles.json` is
+written with the private atomic writer at mode 0600 and bounded at 64 KiB.
+It records prior bytes so disabling can restore them exactly; a corrupt or
+newer receipt refuses every role command and is never overwritten, and a
+missing receipt grants no ownership. External writes go through the expected-
+version path: no symlink following, regular files only, same uid, parent
+rechecked, and an entry whose content changed since Omablade wrote it is
+left in place rather than overwritten. Enabling reveal never kills the
+current owner of `org.freedesktop.FileManager1`. `RolesSet` is a mutating
+backend command; it uses the native authority transport.
+
+## Omablade Trash
+
+The first-class Trash view combines the Freedesktop Trash layout with
+Omablade-managed satellite snapshots. It discovers the home Trash, applicable
+mount-local stores, and private satellite stores with bounds on mounts, stores,
+modules, candidates, metadata, response size, and errors. It parses `.trashinfo`
+and directory-size data through bounded no-follow regular-file reads.
+
+Trashing first secures the selected entry against pathname replacement. After
+the desktop trash operation, Omablade publishes a fresh stored name with the
+correct original-path metadata already written, so desktop clients cannot keep
+using cached staging-path metadata. Publication uses no-replace moves and keeps
+the current stored identity available for rollback. This follows the
+[Freedesktop metadata-before-payload ordering](https://specifications.freedesktop.org/trash/latest/)
+and accounts for [GVfs caching entries by stored name](https://github.com/GNOME/gvfs/blob/master/daemon/trashlib/trashdir.c).
+
+Catalog entry IDs bind store/name and observed file identities. Restore,
+permanent delete, and empty re-resolve and revalidate selected entries before
+mutation. Restore uses no-replace relocation, refuses unsafe/colliding
+destinations, and can recreate a missing recorded parent only when the caller
+explicitly requests it. Public permanent delete and empty commands require
+`--yes`; the QML view requires confirmation.
+
+Trash metadata and payloads are desktop/user data rather than secrets owned by
+Omablade. Other desktop applications using the same Freedesktop stores can
+change them concurrently; Omablade reports stale/refused entries rather than
+assuming a prior listing is still authoritative.
+
+Retention cleanup is disabled when configured as Never and otherwise removes
+only entries whose parsed deletion time is at or before the requested cutoff.
+Missing, malformed, ambiguous, or changed timestamps are retained. Cleanup
+uses the same identity checks and bounded mutation paths as explicit permanent
+deletion.
+
+## Module artifact bins
+
+Shared artifact-tree rows marked `kind: "bin"` expose the bin's restore/purge
+flow, not ordinary file actions against their historical pathname. A new file
+created at that pathname is not the disabled item.
+
+Artifact bins back the satellite entries shown in Omablade Trash. Module IDs,
+entry names, manifests, item counts, nesting, per-file bytes, total bytes,
+listing work, and responses are bounded. Stored directories are private `0700`
+and regular files `0600`; symlink targets and supported metadata are preserved
+without following the symlink as content.
+
+Restore constructs each root privately, publishes without replacement, and
+checkpoints completed roots so an interrupted exact restore can resume. An
+occupied non-identical destination is refused. Manifests are private,
+bounded, and written atomically. Logical removal saves a visible core record and
+transaction ID before the companion prepares private recovery. Preparation is a
+write operation. The complete payload and helper-input limits are checked and
+saved before source removal. Interrupted preparation can restore by its stored ID;
+it cannot disappear into an invisible helper quota. A cross-process lease excludes
+purge and retention during active mutations. Confirmed restore checkpoints completion
+before cleanup, so retry does not repeat a successful write.
+
+Purge, retention and completed restore call the companion's declared `discard`
+method before removing the visible bin entry. Each transaction has its own record;
+legacy payload matching preserves records referenced by another bin entry. A
+failed cleanup keeps the visible entry. Each helper store scans at most 512 names
+before sorting, reads through held no-follow directories and nonblocking private
+regular-file descriptors, and caps records at about 1 MiB, aggregate bytes at
+16 MiB and pending removals at 64. Pending undo does not expire independently of
+the bin; direct helper restores retain idempotent completion records for one week.
+Pre-fix payloads without a stored recovery record are not promoted into trusted
+undo. They remain listed and can be purged, but cannot be replayed safely.
+
+The first start without a recorded retention answer opens a modal on the left
+Omablade blade, opening it if needed and using its own window when undocked:
+“Should Omablade automatically empty the trash?” Never is selected initially.
+Never, 1 day, 7 days, 30 days and 90 days require explicit Confirm. Existing implicit
+seven-day defaults do not count as consent. Until a choice is durably saved,
+automatic cleanup is off. The choice applies to shared desktop Trash and artifact
+bins, without per-item ownership markers. It can be changed in settings.
+`settings.json` and `keybindings.json` carry schema `version` and the backend's
+`omabladeVersion`; custom keybindings survive metadata migration.
+
+Skills and Memory browsing is available without write consent. Their management
+operations through Omablade require the saved “Manage agent files” opt-in; enabling
+it explains that links and instruction/skill files influence coding agents.
+
+Hooks/MCP configuration writes and Memory/Skills link changes share the native
+filesystem boundary. Configuration replacement compares the opened identity and
+byte-exact preimage, quarantines the old entry with a durable recovery intent,
+and publishes without overwriting an intervening entry. New files are `0600`;
+existing permission bits are retained. Exclusive link creation and
+identity-checked unlink refuse replacement entries. These protections do not
+isolate enabled code from other same-user processes, including a process that
+already holds a writable file descriptor.
+
+## Agent usage history
+
+This file was written by an agent.
+
+The Skills and MCP helpers read Claude Code and Codex transcripts and keep a
+local SQLite history at `$XDG_STATE_HOME/omarchy/omablade/agent-usage.sqlite3`
+(normally `~/.local/state/`). The directory is created `0700`, the database and
+its lock file `0600`, and nothing leaves the machine. The file is not encrypted
+and any same-user process can read it.
+
+It holds transcript paths with their device, inode, size, modification time and
+read offset; project directories; and one row per use with a timestamp, agent,
+skill, command, MCP server, tool or prompt name, resource URI (query and
+fragment removed, at most 512 bytes), a subagent flag and a failure flag. It
+never stores tool or command arguments, results, message text or tokens.
+Failure call IDs and timestamps wait in a separate table when their original
+call has not been read yet; forgetting also removes those pending failures.
+For already-recorded future calls, forget retains only SHA-256 identity digests
+to prevent replay without blocking later uses because of a bad clock.
+Transcripts are untrusted input: they are opened read-only, records over 4 MiB
+are skipped, at most 8192 files per agent are considered, ingest commits
+bounded chunks and stops reading after about three seconds, and parsed values
+reach SQLite only as bound parameters.
+
+The history outlives the transcripts it came from and survives uninstall with
+the rest of the state directory. `omablade usage forget --before YYYY-MM-DD`
+deletes events before that local day, and `omablade usage forget` deletes all
+events and project paths. Both enable SQLite `secure_delete` and record a
+retention cutoff, preventing replay of forgotten history from replaced,
+truncated, copied or unread transcripts. Transcript paths and offsets stay.
+Deleting rows overwrites SQLite cells; it does not erase old reader snapshots
+in the write-ahead log, filesystem blocks or backups. Deleting the
+`agent-usage.sqlite3*` files removes everything, and history is then rebuilt
+from whatever transcripts still exist. Details are in
+[agent usage history](docs/agent-written/agent-usage.md).
+
+## External commands
+
+External tools are started with explicit argument vectors rather than shell
+interpolation. Untrusted positional values use option terminators where the
+tool supports them. Captured stdout/stderr is drained with producer-side
+retention limits. Blocking probes have deadlines. Captured native commands have
+a Linux supervisor that cleans up the owned process group after leader exit,
+cancellation, timeout or backend death, including SIGKILL. The leader remains
+unreaped until the final group signal, preventing process-group ID reuse during
+cleanup. Nonblocking input/output and a bounded final drain prevent inherited
+pipes from holding a completed request open. Cleanup reports failure if the
+kernel cannot complete it within its bound.
+
+An external Git helper uses a separate supervisor to stop its owned command
+group on timeout or helper death. TERM waits for cleanup before the helper exits.
+Deliberately detached groups, such as credential agents, remain independent;
+they cannot hold the output reader indefinitely. Commit messages use bounded
+stdin instead of argv. Neither this supervisor nor Omablade sandboxes Git
+hooks or configured credential helpers.
+
+Manifest-declared inventory helpers use the same native supervisor. Every dispatch,
+including reads, restore and purge, requires a complete current catalog, a matching
+installed directory and authoritative enabled state. Unknown or disabled companions
+are refused; the user must explicitly re-enable before their helpers run. Their
+relative executable must be a regular executable inside the provider checkout;
+read and write methods cannot overlap. Timeouts are limited to 30 seconds,
+stdout to 2 MiB, stderr to 4 KiB, and private stdin to 64 KiB. Nonzero exits
+cannot be reported as success. Helper-write audit records retain only declared
+provider/helper/method identifiers and success, never private input, helper
+arguments, output or detailed errors. Enabled extensions remain trusted session
+code; declaring a helper does not sandbox it.
+
+Intentional desktop application launches are detached and may outlive the
+request. Omablade resolves optional programs through `PATH`, so the desktop
+session's `PATH` and installed executables are part of the trusted computing
+base. Do not run Omablade with an untrusted `PATH`.
+
+Links in a module's Properties subject open only through `launch --mode url`.
+The backend accepts one `http` or `https` URL with a host, at most 2048 bytes,
+without whitespace or control characters, and passes it to `gio open --` as a
+single argument through the detached-child pool; any other scheme, including
+`file:` and `javascript:`, is refused before a process starts. Copied subject
+values reach `wl-copy` as private request input of at most 64 KiB through the
+resident clipboard owner, never as a command argument. Subject text is bounded
+and rendered as plain text; see the Properties section of EXTENSIONS.md.
+
+Script actions contributed by extensions run as argv vectors read from the
+manifest on disk, with `argv[0]` confined to the extension directory, the
+selection in the environment or a private file, bounded output, a deadline, a
+concurrency cap, and an audit line. They are unsandboxed, like the extension's
+QML, but they run outside the shell process. The backend re-reads the manifest
+at run time, so neither the UI nor an IPC caller can supply a command vector.
+Actions that declare `confirm` need an explicit approval, in the menu or with
+`--yes`. Your own actions under `~/.config/omarchy/omablade/actions/` may name
+a program on `PATH`; an extension's may not.
+
+## QML and extensions
+
+Dynamic filesystem, command, manifest, and error values are treated as plain
+display text and bounded before entering long-lived models. Blade definitions
+must be bounded regular JSON files with safe relative entry paths. Manifest
+contributions are namespaced to their provider and loaded only while that
+provider is enabled.
+
+Selecting a regular, non-symlink supported media file no larger than 16 MiB
+automatically renders a size-constrained inline preview out of process. Other
+images open through an external application. The resident backend spawns a
+one-shot `omablade _backend thumbnail-render` child for each new file; the
+child caps its own address space at 512 MiB, reads the file without following
+links, decodes PNG, JPEG and WebP directly, and rejects sources
+wider or taller than 16384 pixels or above 64 megapixels, decodes under the
+image crate's allocation limits, and writes a PNG of at most 1024 pixels per
+edge to `~/.cache/omablade/thumbnails/` keyed by path, stat fingerprint, and
+size. The shell only ever hands Qt that PNG. A crash, timeout, or decoder error
+in the child ends that one render and shows "Preview unavailable"; the shell
+and the resident backend are not affected. Before the child is even started,
+the type, link, byte, and target-size gates limit exposure.
+Other recognized images and static video posters use `ffprobe` and `ffmpeg`
+with fixed demuxer/codec allowlists and only the `fd` and `pipe` protocols. Input is a sealed anonymous memory file, allowing container seeks without enabling filesystem or network URLs. Both receive
+bounded source bytes on stdin, have four-second command deadlines, one decoder
+thread, a 512 MiB address-space cap and no regular-file writes. Output is capped
+at 8 MiB and checked as a PNG within the requested dimensions. Unsupported
+formats, absent tools and decoder failures retain a visible fallback. The
+[media contract](modules/files/MEDIA.md) records the qualified formats and gaps.
+Application icons can use bounded theme names and trusted local desktop-catalogue
+sources. Qt decodes those local icon images with requested dimensions capped at
+128 device pixels; this icon path is distinct from the media thumbnail worker.
+Arbitrary remote row URLs are not accepted as application icon sources.
+
+Thumbnail directories are `0700` and files are atomically published as `0600`.
+Cache reads reject symlinks, non-regular files, unsafe permissions, files over
+8 MiB, and dimensions outside the requested bounds. Legacy permissive files
+are regenerated inside the private cache directory.
+
+Those checks validate discovery data; they do not sandbox the QML referenced by
+an accepted definition. Review user modules and satellite extensions for plain
+text rendering, bounded models, process/URL sinks, teardown, and persistence
+before enabling them. Omablade does not execute a discovered module's
+unrelated hooks, MCP commands, or agent configuration merely to display it.
+
+## Reporting
+
+Report vulnerabilities privately to the repository owner. Include the exact
+commit, reproduction steps, affected paths, and whether the issue requires the
+application or a particular extension to be running. Do not include credentials, private file contents, Trash
+payloads, or other personal data in the report.

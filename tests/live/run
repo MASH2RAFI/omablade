@@ -1,0 +1,226 @@
+#!/usr/bin/env bash
+set -uo pipefail
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.."
+R=$PWD
+W="$R/target/live"
+RT="/tmp/omablade-live-$(id -u)"
+
+for need in Hyprland hyprctl qs jq git bsdtar wl-copy wl-paste dbus-daemon; do
+  command -v "$need" >/dev/null 2>&1 || { printf 'live: %s is required\n' "$need" >&2; exit 2; }
+done
+[[ -n ${WAYLAND_DISPLAY:-} && -n ${XDG_RUNTIME_DIR:-} ]] || { echo 'live: run from a Wayland session; the nested Hyprland opens as a window' >&2; exit 2; }
+parent_wayland="$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY"
+[[ $WAYLAND_DISPLAY == /* ]] && parent_wayland=$WAYLAND_DISPLAY
+
+cargo build --release --locked >/dev/null || { echo 'live: release build failed' >&2; exit 1; }
+B="$R/target/release/omablade"
+
+pids=()
+teardown() {
+  local pid
+  for pid in "${pids[@]}"; do kill "$pid" 2>/dev/null; done
+  [[ -f $W/dbus.pid ]] && kill "$(cat "$W/dbus.pid")" 2>/dev/null
+  sleep 1
+  rm -f "$RT"
+  rm -rf -- "${W:?}"
+}
+trap teardown EXIT
+rm -rf -- "${W:?}"
+mkdir -p "$W/rt" "$W/home/.config/hypr" "$W/home/.local/share" "$W/home/.cache" \
+  "$W/spike/config/omarchy/omablade" "$W/spike/state/omablade" "$W/spike/state/omarchy/omablade"
+chmod 700 "$W/rt"
+ln -sfn "$W/rt" "$RT"
+printf 'monitor=,1600x900,0x0,1\nmisc {\n disable_hyprland_logo = true\n disable_splash_rendering = true\n}\necosystem {\n no_update_news = true\n no_donation_nag = true\n}\n' >"$W/home/.config/hypr/hyprland.conf"
+
+env -u HYPRLAND_INSTANCE_SIGNATURE HOME="$W/home" XDG_RUNTIME_DIR="$RT" WAYLAND_DISPLAY="$parent_wayland" \
+  XDG_CONFIG_HOME="$W/home/.config" PATH=/usr/bin Hyprland -c "$W/home/.config/hypr/hyprland.conf" </dev/null >"$W/hyprland.log" 2>&1 &
+pids+=($!)
+for _ in $(seq 100); do [[ -S $RT/wayland-1 && -d $RT/hypr && -n $(ls "$RT/hypr" 2>/dev/null) ]] && break; sleep 0.1; done
+[[ -S $RT/wayland-1 ]] || { echo 'live: nested Hyprland did not start' >&2; exit 1; }
+
+export HOME="$W/home" OMABLADE_SPIKE_HOME="$W/spike" XDG_RUNTIME_DIR="$RT"
+export XDG_CONFIG_HOME="$W/spike/config" XDG_STATE_HOME="$W/spike/state" XDG_DATA_HOME="$W/home/.local/share" XDG_CACHE_HOME="$W/home/.cache"
+export OMABLADE_SOURCE_DIR="$R" OMABLADE_APP_ROOT="$R" OMABLADE_BINARY="$B"
+export OMABLADE_NATIVE_STATE_ROOT="$XDG_STATE_HOME/omarchy/omablade"
+export WAYLAND_DISPLAY=wayland-1 HYPRLAND_INSTANCE_SIGNATURE=$(ls "$RT/hypr") QT_QPA_PLATFORM=wayland QT_STYLE_OVERRIDE=Basic
+unset DISPLAY QT_QPA_PLATFORMTHEME
+for _ in $(seq 50); do hyprctl monitors -j >/dev/null 2>&1 && break; sleep 0.1; done
+DBUS_SESSION_BUS_ADDRESS=$(dbus-daemon --session --fork --print-address=1 --print-pid=2 2>"$W/dbus.pid" | head -1)
+export DBUS_SESSION_BUS_ADDRESS
+
+"$B" extension template acme.omablade-weather "$XDG_CONFIG_HOME/omablade/extensions/acme.omablade-weather" --name Weather >/dev/null
+"$B" serve --native-authority --native-isolated --max-concurrency 16 </dev/null >>"$OMABLADE_NATIVE_STATE_ROOT/authority.log" 2>&1 &
+pids+=($!)
+for _ in $(seq 50); do "$B" serve --native-probe >/dev/null 2>&1 && break; sleep 0.1; done
+OMABLADE_ACTIVATE=1 qs -n -p "$R/app" </dev/null >>"$OMABLADE_NATIVE_STATE_ROOT/view.log" 2>&1 &
+pids+=($!)
+ready=0
+for _ in $(seq 200); do
+  if [[ $("$B" native ipc -- omablade.native status 2>/dev/null) == *'"loaded":true'* ]] \
+    && [[ $("$B" blades -o json 2>/dev/null | jq '[.blades[].slots | length] | add' 2>/dev/null) -gt 0 ]]; then
+    ready=1; break
+  fi
+  sleep 0.05
+done
+((ready)) || { echo 'live: the view did not load' >&2; tail -20 "$OMABLADE_NATIVE_STATE_ROOT/view.log" >&2; exit 1; }
+sleep 1
+
+pass=0 fail=0
+ok() {
+  if eval "$2"; then pass=$((pass + 1)); printf 'PASS %s\n' "$1"
+  else fail=$((fail + 1)); printf 'FAIL %s\n     %.300s\n' "$1" "${out:-}"; fi
+}
+run() { out=$(timeout 40 "$B" "$@" 2>&1); code=$?; }
+js() { out=$(timeout 40 "$B" "$@" -o json 2>&1); code=$?; }
+L() { "$B" blades -o json | jq -c '[.blades|to_entries[]|{(.key):[.value.slots[]|[.modules[].module]]}]|add'; }
+st() { "$B" status -o json | jq -r "$1"; }
+idle() { for _ in $(seq 60); do [[ $(st .operationBusy) == false ]] && return 0; sleep 0.25; done; return 1; }
+names() { jq -c '[(.result // .).entries[]?.name]' <<<"$out"; }
+g() { git -c user.email=t@e.st -c user.name=Tester -c init.defaultBranch=main "$@"; }
+
+F="$W/fx" P="$W/fx/proj" A="$W/fx/arc" X="$W/fx/work"
+mkdir -p "$P/src/deep" "$P/.hidden" "$P/space dir" "$P/docs" "$A/content/sub" "$X/dst" "$X/p1" "$X/p2" "$X/p3"
+(
+  cd "$P" && g init -q
+  printf 'hello\n' >README.md; printf 'fn main() {}\n' >src/main.rs; printf 'deep\n' >src/deep/leaf.txt
+  printf 'a b\n' >"space dir/a b.txt"; printf 'u\n' >"docs/naïve résumé.txt"
+  g add -A && g commit -qm init && g branch feature
+  printf 'change\n' >>README.md; printf 'new\n' >untracked.txt
+  ln -s src link-to-src
+)
+printf 'one\n' >"$A/content/one.txt"; printf 'two\n' >"$A/content/sub/two.txt"
+(cd "$A" && tar czf good.tar.gz content && bsdtar -a -cf good.zip content)
+printf 'not an archive\n' >"$A/fake.zip"
+seq 1 200000 >"$F/big.log"
+"$B" preferences --trash-retention-days 0 >/dev/null
+cd "$P"
+
+echo "## info and preview"
+run --version; ok "version" '[[ $code == 0 && $out == omablade* ]]'
+js doctor; ok "doctor reports no version skew" '[[ $(jq -r .version_skew <<<"$out") == false ]]'
+js status; ok "status has a root" '[[ $(jq -r .rootPath <<<"$out") == /* ]]'
+js preview README.md; ok "text preview" '[[ $(jq -r .ok <<<"$out") == true ]]'
+js preview "$F/big.log"; ok "large file previews its first lines" '[[ $(jq -r ".ok,.truncated" <<<"$out" | tr "\n" ,) == true,true, ]]'
+run preview src; ok "folder preview refused" '[[ $code == 1 ]]'
+run preview link-to-src/main.rs; ok "preview through a linked folder explains itself" '[[ $out == *"reached through a link"* ]]'
+echo "## archives"
+js archive-list "$A/good.tar.gz"; ok "list tar.gz" '[[ $(jq -r .ok <<<"$out") == true ]]'
+run archive-list "$A/fake.zip"; ok "non-archive gets a plain error" '[[ $code == 1 && $out == *"not a supported archive"* ]]'
+run extract "$A/good.zip" --to "$F/x1"; ok "extract zip" '[[ $code == 0 && -f $F/x1/content/one.txt ]]'
+run extract "$A/good.zip" --to "$F/x1"; ok "extract into non-empty refused" '[[ $code == 1 ]]'
+echo "## modules, branches, logs"
+run branches list; ok "branches list" '[[ $out == *main* && $out == *feature* ]]'
+run modules; ok "modules include the extension" '[[ $out == *weather* ]]'
+run log --limit 3; ok "log under the native authority" '[[ $code == 0 ]]'
+printf '%s\n' "$P/README.md" "$P/src/main.rs" >"$F/list.txt"
+js list --from "$F/list.txt"; ok "list under the native authority" '[[ $(jq -r .count <<<"$out") == 2 ]]'
+"$B" clear-search >/dev/null 2>&1
+run extension check "$XDG_CONFIG_HOME/omablade/extensions/acme.omablade-weather"; ok "extension template passes its contract" '[[ $code == 0 ]]'
+echo "## navigation, tree, search"
+run root "$P" --wait; ok "root" '[[ $(st .rootPath) == "$P" ]]'
+run navigate "$P/src" --wait; run up; ok "navigate and up" '[[ $(st .rootPath) == "$P" ]]'
+run back --wait; ok "back" '[[ $(st .rootPath) == "$P/src" ]]'
+run root "$P" --wait
+js tree; ok "tree marks git status" '[[ $(jq -r ".entries[]|select(.name==\"README.md\").gitStatus" <<<"$out") == M ]]'
+run expand "$P/src"; ok "expand" '[[ $out == expanded ]]'
+run expand "$P/nowhere"; ok "expand a missing path fails" '[[ $code == 1 ]]'
+run collapse "$P/src"; ok "collapse" '[[ $out == collapsed ]]'
+js search leaf --wait; ok "deep search" '[[ $(names) == *leaf.txt* ]]'
+js search 'résumé' --wait; ok "unicode search" '[[ $(names) == *résumé* ]]'
+run search '[' --regex --wait; ok "bad regex reports an error" '[[ $code != 0 ]]'
+run clear-search; run quicknav --channel bogus; ok "unknown quick nav channel refused" '[[ $code == 1 ]]'
+"$B" close-menu >/dev/null 2>&1
+run columns size,modified; ok "columns" '[[ $out == size,modified ]]'
+run columns bogus; ok "unknown column refused" '[[ $code == 2 ]]'
+run set-folder-color "$P/src" blue; js folder-color "$P/src"; ok "folder color" '[[ $(jq -r .color <<<"$out") == "#61afef" ]]'
+run pin "$P/src"; js favorites; ok "pin favorite" '[[ $(jq length <<<"$out") == 1 ]]'; run unpin "$P/src"
+for _ in 1 2 3; do run git-refresh --wait; [[ $code == 0 ]] || break; done; ok "git-refresh --wait" '[[ $code == 0 ]]'
+echo "## file operations"
+cd "$X"; "$B" root "$X" --wait >/dev/null
+run new-file a.txt "$X" --wait; ok "new file" '[[ -f $X/a.txt ]]'
+run new-file ../escape.txt "$X" --wait; ok "traversal name refused" '[[ $code == 1 ]]'
+run rename b.txt "$X/a.txt" --wait; ok "rename" '[[ -f $X/b.txt ]]'
+run copy-to "$X/dst" "$X/b.txt" --wait; ok "copy" '[[ -f $X/dst/b.txt ]]'
+echo NEW >"$X/b.txt"
+run copy-to "$X/dst" "$X/b.txt" --on-conflict keep-both --wait; ok "conflict keep-both" '[[ $(ls "$X/dst" | wc -l) == 2 ]]'
+run copy-to "$X/dst" "$X/b.txt" --on-conflict replace --wait; ok "conflict replace" '[[ $(cat "$X/dst/b.txt") == NEW ]]'
+run copy-to "$X/dst" "$X/b.txt" --wait --timeout 2; ok "unanswered conflict times out and is cancelled" '[[ $code == 1 && $out == *"cancelled it"* ]]'; idle
+run copy-to "$X/nope" "$X/b.txt" --wait; ok "missing destination is named" '[[ $out == *"nope does not exist"* ]]'
+run copy-to "$X/dst" "$X/b.txt" --wait --timeout 0; ok "invalid timeout refused before anything runs" '[[ $code == 2 ]]'
+run move-to "$X/p1" "$X/b.txt" --wait; ok "move" '[[ -f $X/p1/b.txt && ! -e $X/b.txt ]]'
+run undo --wait; ok "undo" '[[ -f $X/b.txt ]]'
+run redo --wait; ok "redo" '[[ -f $X/p1/b.txt ]]'
+echo t >"$X/t.txt"
+run trash "$X/t.txt" --yes --wait; ok "trash" '[[ ! -e $X/t.txt ]]'
+id=$("$B" trash-list -o json | jq -r '.entries[]|select(.name=="t.txt").id')
+run trash-restore --id "$id"; ok "restore from trash" '[[ -f $X/t.txt ]]'
+echo "## clipboard"
+"$B" root "$X" --wait >/dev/null; echo c >"$X/c.txt"
+run copy "$X/c.txt"; ok "copy to clipboard" '[[ $(timeout 2 wl-paste -t text/uri-list 2>/dev/null) == *c.txt* ]]'
+run paste "$X/p2" --wait; ok "paste" '[[ -f $X/p2/c.txt ]]'
+run cut "$X/c.txt"; run paste "$X/p3" --wait; ok "cut and paste moves" '[[ -f $X/p3/c.txt && ! -e $X/c.txt ]]'
+run paste "$X/p1" --wait --timeout 5; ok "a used cut cannot be pasted again" '[[ $code == 1 && ! -e $X/p1/c.txt ]]'
+run copy-path "$X/p3/c.txt"; ok "copy-path" '[[ $(timeout 2 wl-paste 2>/dev/null) == "$X/p3/c.txt" ]]'
+run clear-clipboard; ok "clear-clipboard empties it" '[[ "$(timeout 2 wl-paste 2>&1)" == *"Nothing is copied"* ]]'
+echo "## menus, wheel, picker"
+run menu "$X/p3/c.txt"; ok "actions menu opens" '[[ $(st .actionMenuOpen) == true ]]'
+run close-menu; ok "actions menu closes" '[[ $(st .actionMenuOpen) == false ]]'
+run wheel "$X/p3/c.txt"; ok "drop wheel opens" '[[ $(st .dropWheel.open) == true ]]'; "$B" close-wheel >/dev/null
+js drop-actions "$X/p3/c.txt"; ok "drop actions listed" '[[ $(jq ".actions|length" <<<"$out") -ge 2 ]]'
+run pick --root "$X" --timeout 1; ok "timed-out pick closes its picker" '[[ $code == 1 && $(st .pickerActive) == false ]]'
+run popout notes; ok "popout explains the missing bar widget" '[[ $out == *"bar widget"* ]]'
+echo "## blades"
+"$B" blade set left files,properties >/dev/null; "$B" blade set right notes,welcome >/dev/null; "$B" blade open left >/dev/null; "$B" blade open right >/dev/null
+run blade move-slot left 1 right; ok "move-slot" '[[ $(L) == *"\"right\":[[\"notes\"],[\"welcome\"],[\"properties\"]]"* ]]'
+run blade set left files,properties; ok "blade set moves single-instance modules" '[[ $(L) == *"\"left\":[[\"files\"],[\"properties\"]]"* ]]'
+run blade set right nosuch; ok "blade set refuses unknown modules" '[[ $code == 1 ]]'
+run hide; run toggle; ok "toggle opens after hide" '[[ $out == open ]]'
+run blade width left 10; ok "width clamps" '[[ $out == 280 ]]'
+run blade undock left; run blade dock left; ok "undock and dock" '[[ $out == docked ]]'
+run blade bar-placement beside; ok "bar placement" '[[ $(st .barPlacement) == beside ]]'; "$B" blade bar-placement below >/dev/null
+echo "## writing modules"
+run module new hello-panel --add right; ok "module new places the starter" '[[ $code == 0 && $(L) == *hello-panel* ]]'
+run extension check "$XDG_CONFIG_HOME/omarchy/omablade/modules/hello-panel"; ok "the starter passes the check" '[[ $code == 0 ]]'
+run extension install "$R/examples/mash2rafi.omablade-networkstorage" --add left; ok "extension install places its module" '[[ $code == 0 && $(L) == *networkstorage* ]]'
+run extension install "$R/examples/mash2rafi.omablade-networkstorage"; ok "a second install asks for --replace" '[[ $code != 0 && $out == *--replace* ]]'
+before=$(st .rootPath); sed -i 's/Select a file in Files/Edited/' "$XDG_CONFIG_HOME/omarchy/omablade/modules/hello-panel/Module.qml"
+run module reload; ok "module reload keeps the layout and folder" '[[ $code == 0 && $(st .rootPath) == "$before" && $(L) == *hello-panel* ]]'
+echo "## inherited Hyprland look"
+"$B" blade open left >/dev/null 2>&1
+look() { "$B" status -o json | jq -r ".hyprLook$1"; }
+reserved_left() { hyprctl monitors -j | jq '.[0].reserved[0]'; }
+for _ in $(seq 40); do [[ $(look .known) == true ]] && break; sleep 0.25; done
+before=$(reserved_left); gap_before=$(look .gaps.left)
+cat >>"$W/home/.config/hypr/hyprland.conf" <<'LOOK'
+general {
+ gaps_out = 6
+ border_size = 3
+ col.active_border = rgba(ff0000ff)
+ col.inactive_border = rgba(00ff0080)
+}
+decoration {
+ rounding = 9
+ active_opacity = 0.8
+ inactive_opacity = 0.7
+}
+LOOK
+hyprctl reload >/dev/null
+for _ in $(seq 40); do [[ $(look .rounding) == 9 ]] && break; sleep 0.25; done
+out=$("$B" status -o json | jq -c .hyprLook)
+ok "a Hyprland reload is inherited without a restart" '[[ $(look .rounding) == 9 && $(look .borderSize) == 3 && $(look .gaps.left) == 6 ]]'
+ok "border colours and opacity follow" '[[ $(look .activeBorder) == "ffff0000 0deg" && $(look .inactiveBorder) == "8000ff00 0deg" && $(look .activeOpacity) == 0.8 && $(look .inactiveOpacity) == 0.7 ]]'
+for _ in $(seq 20); do [[ $(reserved_left) -ne $before ]] && break; sleep 0.25; done
+ok "the docked blade keeps the window gap" '[[ $(( $(reserved_left) - before )) == $(( 6 - gap_before )) ]]'
+sed -i 's/col.active_border = rgba(ff0000ff)/col.active_border = rgba(0000ffff) rgba(ffffffff) 45deg/' "$W/home/.config/hypr/hyprland.conf"
+hyprctl reload >/dev/null
+for _ in $(seq 40); do [[ $(look .activeBorder) == *45deg* ]] && break; sleep 0.25; done
+ok "a later change is followed too, gradients included" '[[ $(look .activeBorder) == "ff0000ff ffffffff 45deg" ]]'
+echo "## follow-ups"
+mkdir -p "$X/gone/in"; run root "$X/gone/in" --wait; rm -rf "$X/gone"
+for _ in $(seq 40); do [[ $(st .rootPath) == "$X" ]] && break; sleep 0.25; done
+ok "a deleted open folder falls back to its parent" '[[ $(st .rootPath) == "$X" ]]'
+out=$(grep "Cannot read property\|Unable to assign \[undefined\]" "$OMABLADE_NATIVE_STATE_ROOT/view.log" | head -3)
+ok "the view logged no undefined-colour errors" '[[ -z $out ]]'
+
+printf '== live: %s passed, %s failed\n' "$pass" "$fail"
+exit $((fail > 0))

@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+set -euo pipefail
+fail() { printf 'native-ovm: %s\n' "$*" >&2; exit 1; }
+real=${OVM_REAL:-$HOME/.claude/skills/test-omarchy-plugin/scripts/ovm}
+[[ -x $real && ! $real -ef ${BASH_SOURCE[0]} ]] || fail 'OVM_REAL must name the real ovm executable'
+case ${1:-} in
+  push)
+    [[ ${SKIP_PUSH:-1} != 1 ]] || fail 'push refused under SKIP_PUSH=1'
+    [[ $# == 2 ]] || fail 'usage: native-ovm push SOURCE (OMABLADE_NATIVE_PAYLOAD must name its built payload)'
+    payload=$(realpath -e -- "${OMABLADE_NATIVE_PAYLOAD:?set OMABLADE_NATIVE_PAYLOAD to the built payload}")
+    [[ $(jq -r .source "$payload/payload.json") == "$(git -C "$2" rev-parse HEAD)" ]] || fail 'payload source differs from the given tree'
+    guest_stage=$("$real" ssh 'mktemp -d /tmp/omablade-native-push.XXXXXXXX')
+    [[ $guest_stage =~ ^/tmp/omablade-native-push\.[A-Za-z0-9]+$ ]] || fail 'unexpected guest staging path'
+    trap '"$real" ssh "rm -rf -- $guest_stage" >/dev/null' EXIT
+    printf -v transport 'ssh -i %q -p %q -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR' "${OVM_HOME:-$HOME/.local/share/test-omarchy-plugin}/id_ed25519" "${OVM_SSH_PORT:-2322}"
+    rsync -a -e "$transport" -- "$payload/" "omarchy@127.0.0.1:$guest_stage/"
+    "$real" ssh "'$guest_stage/tools/native' install '$guest_stage'"
+    exit
+    ;;
+  ipc)
+    case ${2:-} in
+      mash2rafi.omablade|mash2rafi.omablade.*|omablade.native|omablade.chooser|_backend|drop-context|drop-run|preferences-read|preferences-set) ;;
+      *) exec "$real" "$@" ;;
+    esac
+    ;;
+  restart|restart-shell) [[ $# == 1 ]] || fail 'restart takes no arguments' ;;
+  *) exec "$real" "$@" ;;
+esac
+remote=$(cat <<'SH'
+set -euo pipefail
+fail() { printf 'native-ovm: %s\n' "$*" >&2; exit 1; }
+verb=$1
+launcher=$2
+shift 2
+if [[ -z $launcher ]]; then
+  launcher=$HOME/.local/bin/omablade
+  [[ -e $launcher || -L $launcher ]] || launcher=/usr/bin/omablade
+fi
+[[ -x $launcher ]] || fail 'installed stable launcher is unavailable'
+physical=$(readlink -f -- "$launcher")
+if [[ $physical == /usr/bin/omablade ]]; then
+  runtime=/usr/lib/omablade
+else
+  installation=$(dirname -- "$physical")
+  [[ $physical == "$installation/launcher" && -L $installation/active ]] || fail 'launcher does not identify an active direct installation'
+  runtime=$(readlink -f -- "$installation/active/runtime")
+  digest=$(sha256sum -- "$runtime/payload.json"); digest=${digest%% *}
+  [[ $runtime == "$installation/versions/$digest" ]] || fail 'active payload identity differs'
+  jq -e --arg installation "$installation" --arg digest "$digest" '.schema == 1 and .owner == "direct" and .installation == $installation and .payload == $digest' "$installation/active/receipt.json" >/dev/null || fail 'active receipt differs'
+fi
+[[ -x $runtime/app/launch ]] || fail 'installed payload launcher is unavailable'
+export OMABLADE_APP_ROOT=$runtime OMABLADE_SOURCE_DIR=$runtime OMABLADE_BINARY=$runtime/bin/omablade
+export OMABLADE_NATIVE_STATE_ROOT=${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/omablade
+[[ -x $OMABLADE_BINARY ]] || fail 'installed production backend bin/omablade is unavailable'
+case $verb in
+  ipc)
+    case ${1:-} in
+      _backend) exec "$launcher" "$@" ;;
+      drop-context|drop-run|preferences-read|preferences-set) exec "$launcher" _backend "$@" ;;
+      *) exec "$launcher" native ipc -- "$@" ;;
+    esac
+    ;;
+  restart|restart-shell)
+    code=0
+    result=$("$launcher" native drain --timeout-ms 30000 --json) || code=$?
+    answer=$(jq -Rsc 'split("\n") as $lines | [range(0; $lines | length) as $start | select($lines[$start] | test("^\\s*[{]")) | range($lines | length; $start; -1) as $end | $lines[$start:$end] | join("\n") | try fromjson catch empty | objects] | if length > 0 then .[0] else empty end' <<< "$result" 2>/dev/null)
+    if [[ -z $answer ]] || ! jq -e '.schema == 1 and .action == "drain" and (.status | IN("drained", "already_stopped")) and .error == "" and (.operation_ids | type == "array" and all(.[]; type == "string")) and (.dirty_note_ids | type == "array" and all(.[]; type == "string"))' <<< "$answer" >/dev/null 2>&1; then
+      if [[ -n $answer ]]; then
+        fail "drain did not confirm a safe restart (exit $code, $(jq -r '"status \(.status // "missing" | tostring)" + (if (.error // "") != "" then ": \(.error | tostring)" else "" end)' <<< "$answer"))"
+      fi
+      fail "drain did not confirm a safe restart (exit $code without a JSON answer: $(head -c 300 <<< "$result" | tr -s '[:space:]' ' '))"
+    fi
+    [[ $(readlink -f -- "$launcher") == "$physical" ]] || fail 'stable launcher changed during drain; retry'
+    if [[ -n ${installation:-} ]]; then
+      [[ $(readlink -f -- "$installation/active/runtime") == "$runtime" ]] || fail 'activation changed during drain; retry'
+    fi
+    mkdir -p -- "$OMABLADE_NATIVE_STATE_ROOT"
+    setsid -f "$launcher" </dev/null >>"$OMABLADE_NATIVE_STATE_ROOT/native-ovm.log" 2>&1
+    for attempt in {1..60}; do
+      if timeout 2 "$launcher" native ipc -- omablade.native status 2>/dev/null | jq -R -e --arg root "$runtime" 'fromjson? | objects | .loaded and .sourceDir == $root' >/dev/null 2>&1 &&
+        timeout 2 "$launcher" native ipc -- mash2rafi.omablade status 2>/dev/null | jq -R -e 'fromjson? | objects | .bladeModules | contains(["files", "notes", "properties", "welcome", "hooks", "mcp", "memory", "skills"])' >/dev/null 2>&1; then exit 0; fi
+      sleep 0.5
+    done
+    fail 'installed app did not become ready after restart'
+    ;;
+esac
+SH
+)
+verb=$1
+shift
+printf -v command '%q ' bash -c "$remote" native-ovm "$verb" "${OMABLADE_NATIVE_LAUNCHER:-}" "$@"
+exec "$real" ssh "$command"

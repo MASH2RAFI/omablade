@@ -1,0 +1,685 @@
+use omablade::extension_template::{self, Request};
+use serde_json::Value;
+use std::fs;
+use std::os::unix::fs::PermissionsExt;
+use std::path::Path;
+use std::process::Command;
+
+fn omablade() -> Command {
+    Command::new(env!("CARGO_BIN_EXE_omablade"))
+}
+
+fn request(id: &str) -> Request {
+    Request {
+        id: id.to_string(),
+        author: Some("Jane Doe".to_string()),
+        ..Request::default()
+    }
+}
+
+fn rendered(files: &[extension_template::Rendered], path: &str) -> extension_template::Rendered {
+    files
+        .iter()
+        .find(|file| file.path == path)
+        .unwrap_or_else(|| panic!("{path} is rendered"))
+        .clone()
+}
+
+fn text(file: &extension_template::Rendered) -> String {
+    String::from_utf8(file.contents.clone()).unwrap()
+}
+
+#[test]
+fn defaults_follow_the_plugin_id() {
+    let scaffold = extension_template::scaffold(&request("acme.omablade-weather-radar")).unwrap();
+    assert_eq!(scaffold.publisher, "acme");
+    assert_eq!(scaffold.short, "omablade-weather-radar");
+    assert_eq!(scaffold.module, "weather-radar");
+    assert_eq!(scaffold.name, "Weather Radar");
+    assert_eq!(scaffold.author, "Jane Doe");
+    assert_eq!(
+        scaffold.description,
+        "Adds a Weather Radar blade to Omablade."
+    );
+    assert_eq!(
+        scaffold.repository,
+        "https://github.com/acme/omablade-weather-radar.git"
+    );
+    assert!(scaffold.year >= 2026);
+
+    let plain = extension_template::scaffold(&request("acme.clock")).unwrap();
+    assert_eq!(plain.module, "clock");
+    assert_eq!(plain.name, "Clock");
+
+    let mut explicit = request("acme.omablade-weather");
+    explicit.name = Some("Weather Radar".to_string());
+    explicit.module = Some("radar".to_string());
+    explicit.description = Some("Rain, soon.".to_string());
+    explicit.repository = Some("https://example.org/acme/weather.git".to_string());
+    let explicit = extension_template::scaffold(&explicit).unwrap();
+    assert_eq!(explicit.module, "radar");
+    assert_eq!(explicit.name, "Weather Radar");
+    assert_eq!(explicit.description, "Rain, soon.");
+    assert_eq!(explicit.repository, "https://example.org/acme/weather.git");
+}
+
+#[test]
+fn invalid_input_is_refused() {
+    for id in [
+        "Weather",
+        "acme",
+        "acme.",
+        ".weather",
+        "acme.omablade.weather",
+        "acme.wea ther",
+        "Acme.weather",
+        "acme/weather",
+    ] {
+        assert!(
+            extension_template::scaffold(&request(id)).is_err(),
+            "{id} must be refused"
+        );
+    }
+    let mut quoted = request("acme.weather");
+    quoted.name = Some("Say \"hi\"".to_string());
+    assert!(extension_template::scaffold(&quoted).is_err());
+    let mut braces = request("acme.weather");
+    braces.description = Some("{{PLUGIN_ID}}".to_string());
+    assert!(extension_template::scaffold(&braces).is_err());
+    let mut module = request("acme.weather");
+    module.module = Some("-bad".to_string());
+    assert!(extension_template::scaffold(&module).is_err());
+    let mut long = request("acme.weather");
+    long.description = Some("x".repeat(161));
+    assert!(extension_template::scaffold(&long).is_err());
+    let mut repository = request("acme.weather");
+    repository.repository = Some("https://example.org/a b".to_string());
+    assert!(extension_template::scaffold(&repository).is_err());
+    let mut empty = request("acme.weather");
+    empty.author = Some("   ".to_string());
+    assert!(extension_template::scaffold(&empty).is_err());
+}
+
+#[test]
+fn rendered_files_carry_no_placeholders_and_match_the_manifest_contract() {
+    let scaffold = extension_template::scaffold(&request("acme.omablade-weather")).unwrap();
+    let files = extension_template::render(&scaffold).unwrap();
+    for expected in [
+        "manifest.json",
+        "Service.qml",
+        "Provider.qml",
+        "HostGuard.qml",
+        "HostGuard.js",
+        "blades/Module.qml",
+        "README.md",
+        "ARCHITECTURE.md",
+        "docs/agent-guidelines.md",
+        "LICENSE",
+        ".gitignore",
+        "docs/agent-written/README.md",
+        "tests/run",
+        "tests/tst_host_guard.qml",
+        "tests/tst_module.qml",
+        "tests/imports/qs/Commons/qmldir",
+        "tests/imports/qs/Commons/Style.qml",
+        "tests/imports/qs/Commons/Color.qml",
+        "tests/imports/qs/Commons/Util.qml",
+        "assets/omablade-logo.png",
+    ] {
+        rendered(&files, expected);
+    }
+    for file in &files {
+        if let Ok(text) = std::str::from_utf8(&file.contents) {
+            assert!(!text.contains("{{"), "placeholder left in {}", file.path);
+            assert!(!text.contains("}}"), "placeholder left in {}", file.path);
+        }
+    }
+    let manifest: Value =
+        serde_json::from_slice(&rendered(&files, "manifest.json").contents).unwrap();
+    assert_eq!(manifest["schemaVersion"], 1);
+    assert_eq!(manifest["id"], "acme.omablade-weather");
+    assert_eq!(manifest["name"], "Omablade Weather");
+    assert_eq!(manifest["version"], "0.1.0");
+    assert_eq!(manifest["author"], "Jane Doe");
+    assert_eq!(manifest["entryPoints"]["service"], "Service.qml");
+    let module = &manifest["extensions"]["mash2rafi.omablade/blade"][0];
+    assert_eq!(module["id"], "weather");
+    assert_eq!(module["name"], "Weather");
+    assert_eq!(module["entry"], "blades/Module.qml");
+    assert_eq!(module["hostContract"], 2);
+    assert_eq!(module["defaultPlacement"], "beside-files");
+    assert_eq!(module["settings"]["defaults"]["caption"], "");
+    assert_eq!(module["settings"]["schema"][0]["key"], "caption");
+
+    assert!(
+        rendered(&files, "assets/omablade-logo.png")
+            .contents
+            .starts_with(b"\x89PNG")
+    );
+    let gate = text(&rendered(&files, "tests/run"));
+    assert!(gate.contains("\"$host\" extension check ."));
+    assert!(gate.contains("omarchy/plugins/mash2rafi.omablade/omablade"));
+    assert!(!gate.contains("python3"));
+    let guard = text(&rendered(&files, "HostGuard.js"));
+    assert!(guard.contains("--output json host-status --companion"));
+    assert!(guard.contains("\"omarchy plugin remove \" + row.id"));
+    assert!(rendered(&files, "tests/run").executable);
+    assert!(!rendered(&files, "manifest.json").executable);
+
+    let readme = text(&rendered(&files, "README.md"));
+    assert!(readme.contains("**Omablade Weather**"));
+    assert!(readme.contains("git clone https://github.com/acme/omablade-weather.git"));
+    assert!(readme.contains("tab beside the Omablade tab"));
+    assert!(!readme.contains("omablade blade add"));
+    assert!(readme.contains("assets/omablade-extension-logo.svg"));
+    assert!(readme.contains("omablade/extensions/acme.omablade-weather"));
+    assert!(readme.contains("omablade rescan-modules"));
+    assert!(!readme.contains("omarchy plugin"));
+    let license = text(&rendered(&files, "LICENSE"));
+    assert!(license.contains(&format!("Copyright (c) {} Jane Doe", scaffold.year)));
+    let module_qml = text(&rendered(&files, "blades/Module.qml"));
+    assert!(module_qml.contains("readonly property string title: \"Weather\""));
+    assert!(module_qml.contains("textFormat: Text.PlainText"));
+    assert!(!module_qml.contains("Process {"));
+    let guard = text(&rendered(&files, "HostGuard.js"));
+    assert!(guard.contains("var HOST_ID = \"mash2rafi.omablade\""));
+}
+
+#[test]
+fn the_cli_writes_the_template_and_refuses_a_non_empty_directory() {
+    let temporary = tempfile::tempdir().unwrap();
+    let target = temporary.path().join("weather");
+    let output = omablade()
+        .args(["extension", "template", "acme.omablade-weather"])
+        .arg(&target)
+        .args(["--author", "Jane Doe", "--output", "json"])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let document: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(document["ok"], true);
+    assert_eq!(document["id"], "acme.omablade-weather");
+    assert_eq!(document["module"], "acme.omablade-weather/weather");
+    assert_eq!(document["directory"], target.to_str().unwrap());
+    assert!(document["files"].as_array().unwrap().len() >= 20);
+    assert!(document["next"].as_array().unwrap().iter().any(|step| {
+        step.as_str()
+            .unwrap()
+            .contains("acme.omablade-weather/weather as a tab beside Files")
+    }));
+    assert!(
+        document["next"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|step| { step.as_str().unwrap() == "omablade extension image --png" })
+    );
+    assert!(target.join("manifest.json").is_file());
+    assert!(!target.join("bin").exists());
+    assert!(target.join("assets/omablade-logo.png").is_file());
+    assert!(target.join(".gitignore").is_file());
+    assert!(target.join("tests/imports/qs/Commons/qmldir").is_file());
+    let executable = fs::metadata(target.join("tests/run"))
+        .unwrap()
+        .permissions()
+        .mode();
+    assert_eq!(executable & 0o777, 0o755);
+    let plain = fs::metadata(target.join("manifest.json"))
+        .unwrap()
+        .permissions()
+        .mode();
+    assert_eq!(plain & 0o777, 0o644);
+
+    let contract = omablade()
+        .args(["extension", "check", "."])
+        .current_dir(&target)
+        .output()
+        .unwrap();
+    assert!(
+        contract.status.success(),
+        "generated extension contract failed:\n{}\n{}",
+        String::from_utf8_lossy(&contract.stdout),
+        String::from_utf8_lossy(&contract.stderr)
+    );
+
+    let again = omablade()
+        .args(["extension", "template", "acme.omablade-weather"])
+        .arg(&target)
+        .output()
+        .unwrap();
+    assert!(!again.status.success());
+    assert!(String::from_utf8_lossy(&again.stderr).contains("not empty"));
+    assert_eq!(
+        fs::read_dir(&target).unwrap().count(),
+        fs::read_dir(&target).unwrap().count()
+    );
+
+    fs::write(target.join("README.md"), "mine\n").unwrap();
+    fs::write(target.join("notes.txt"), "keep\n").unwrap();
+    let forced = omablade()
+        .args(["extension", "template", "acme.omablade-weather"])
+        .arg(&target)
+        .args(["--author", "Jane Doe", "--force"])
+        .output()
+        .unwrap();
+    assert!(forced.status.success());
+    assert_ne!(
+        fs::read_to_string(target.join("README.md")).unwrap(),
+        "mine\n"
+    );
+    assert_eq!(
+        fs::read_to_string(target.join("notes.txt")).unwrap(),
+        "keep\n"
+    );
+
+    let file = temporary.path().join("file");
+    fs::write(&file, "x").unwrap();
+    let onto_file = omablade()
+        .args(["extension", "template", "acme.omablade-weather"])
+        .arg(&file)
+        .output()
+        .unwrap();
+    assert!(!onto_file.status.success());
+
+    let output = omablade()
+        .current_dir(temporary.path())
+        .args(["extension", "template", "acme.clock", "--author", "Jane"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert!(temporary.path().join("acme.clock/manifest.json").is_file());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.starts_with("Created acme.clock (Clock) in "));
+    assert!(stdout.contains("acme.clock/clock as a tab beside Files"));
+
+    let bad = omablade()
+        .current_dir(temporary.path())
+        .args(["extension", "template", "Clock"])
+        .output()
+        .unwrap();
+    assert!(!bad.status.success());
+    assert!(String::from_utf8_lossy(&bad.stderr).contains("publisher.name"));
+    assert!(!temporary.path().join("Clock").exists());
+}
+
+#[test]
+fn the_image_verb_writes_the_banner_for_a_scaffolded_extension() {
+    let temporary = tempfile::tempdir().unwrap();
+    let target = temporary.path().join("weather");
+    let scaffolded = omablade()
+        .args(["extension", "template", "acme.omablade-weather"])
+        .arg(&target)
+        .args(["--author", "Jane Doe"])
+        .output()
+        .unwrap();
+    assert!(scaffolded.status.success());
+    let output = omablade()
+        .args(["extension", "image", "--manifest"])
+        .arg(target.join("manifest.json"))
+        .arg("--out")
+        .arg(target.join("assets"))
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let svg = fs::read_to_string(target.join("assets/omablade-extension-logo.svg")).unwrap();
+    assert!(svg.starts_with("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 960 272\""));
+    assert!(svg.contains("aria-label=\"Omablade weather extension\""));
+    assert!(svg.contains("id=\"omablade-extension-logo-mask\""));
+    assert!(svg.contains("translate(410.39,243.20) scale(0.4)"));
+    assert!(svg.contains("fill=\"#e0af68\""));
+    assert!(svg.trim_end().ends_with("</svg>"));
+    assert!(!Path::new(&target).join("scripts").exists());
+}
+
+#[test]
+fn generated_extensions_ship_no_automatic_agent_instruction_path() {
+    let scaffold = extension_template::scaffold(&request("acme.omablade-weather")).unwrap();
+    let files = extension_template::render(&scaffold).unwrap();
+    for file in &files {
+        let root_entry = file.path.split('/').next().unwrap_or(file.path);
+        assert!(
+            !matches!(
+                root_entry,
+                "AGENTS.md"
+                    | "CLAUDE.md"
+                    | "GEMINI.md"
+                    | ".cursorrules"
+                    | ".clinerules"
+                    | ".claude"
+                    | ".codex"
+                    | ".agents"
+            ),
+            "{} is published with the extension, where coding agents read it on their own",
+            file.path
+        );
+    }
+    rendered(&files, "docs/agent-guidelines.md");
+}
+
+fn status_script(guard: &str) -> String {
+    let body = guard
+        .split_once("var STATUS_SCRIPT = [\n")
+        .expect("the guard carries a status script")
+        .1
+        .split_once("].join")
+        .expect("the status script is a joined array")
+        .0;
+    body.lines()
+        .map(|line| {
+            let line = line.trim().trim_end_matches(',');
+            let line = line.strip_prefix('"').unwrap_or(line);
+            let line = line.strip_suffix('"').unwrap_or(line);
+            line.replace("\" + HOST_ID + \"", "mash2rafi.omablade")
+                .replace("\\\"", "\"")
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+#[test]
+fn the_host_guard_finds_a_plugin_route_install_without_a_path_entry() {
+    let scaffold = extension_template::scaffold(&request("acme.omablade-weather")).unwrap();
+    let files = extension_template::render(&scaffold).unwrap();
+    let script = status_script(&text(&rendered(&files, "HostGuard.js")));
+    let temporary = tempfile::tempdir().unwrap();
+    let config = temporary.path().join("config");
+    let host = config.join("omarchy/plugins/mash2rafi.omablade");
+    fs::create_dir_all(&host).unwrap();
+    let launcher = host.join("omablade");
+    fs::write(&launcher, "#!/bin/sh\nprintf '%s' \"$*\"\n").unwrap();
+    fs::set_permissions(&launcher, fs::Permissions::from_mode(0o755)).unwrap();
+
+    let found = Command::new("/bin/sh")
+        .args([
+            "-c",
+            &script,
+            "omablade-host-status",
+            "acme.omablade-weather",
+        ])
+        .env("PATH", temporary.path().join("empty"))
+        .env("XDG_CONFIG_HOME", &config)
+        .output()
+        .unwrap();
+    assert!(found.status.success());
+    assert_eq!(
+        String::from_utf8(found.stdout).unwrap(),
+        "--output json host-status --companion acme.omablade-weather"
+    );
+
+    fs::remove_file(&launcher).unwrap();
+    let absent = Command::new("/bin/sh")
+        .args([
+            "-c",
+            &script,
+            "omablade-host-status",
+            "acme.omablade-weather",
+        ])
+        .env("PATH", temporary.path().join("empty"))
+        .env("XDG_CONFIG_HOME", &config)
+        .output()
+        .unwrap();
+    assert_eq!(absent.status.code(), Some(127));
+}
+
+#[test]
+fn the_scaffolded_gate_finds_a_plugin_route_install_without_a_path_entry() {
+    let scaffold = extension_template::scaffold(&request("acme.omablade-weather")).unwrap();
+    let files = extension_template::render(&scaffold).unwrap();
+    let temporary = tempfile::tempdir().unwrap();
+    let extension = temporary.path().join("extension");
+    fs::create_dir_all(extension.join("tests")).unwrap();
+    let gate = extension.join("tests/run");
+    fs::write(&gate, text(&rendered(&files, "tests/run"))).unwrap();
+    fs::set_permissions(&gate, fs::Permissions::from_mode(0o755)).unwrap();
+    let config = temporary.path().join("config");
+    let host = config.join("omarchy/plugins/mash2rafi.omablade");
+    fs::create_dir_all(&host).unwrap();
+    let bare = temporary.path().join("bare");
+    fs::create_dir_all(&bare).unwrap();
+    std::os::unix::fs::symlink(which("dirname"), bare.join("dirname")).unwrap();
+    let launcher = host.join("omablade");
+    fs::write(&launcher, "#!/bin/sh\nprintf '%s' \"$*\" >&2\nexit 9\n").unwrap();
+    fs::set_permissions(&launcher, fs::Permissions::from_mode(0o755)).unwrap();
+
+    let found = Command::new("/bin/bash")
+        .arg(&gate)
+        .env("PATH", &bare)
+        .env("XDG_CONFIG_HOME", &config)
+        .output()
+        .unwrap();
+    assert_eq!(found.status.code(), Some(9));
+    assert_eq!(
+        String::from_utf8(found.stderr).unwrap(),
+        "extension check ."
+    );
+
+    fs::remove_file(&launcher).unwrap();
+    let absent = Command::new("/bin/bash")
+        .arg(&gate)
+        .env("PATH", &bare)
+        .env("XDG_CONFIG_HOME", &config)
+        .output()
+        .unwrap();
+    assert_eq!(absent.status.code(), Some(127));
+    assert!(
+        String::from_utf8(absent.stderr)
+            .unwrap()
+            .contains("Omablade is not installed")
+    );
+}
+
+fn qmltestrunner() -> Option<std::path::PathBuf> {
+    [
+        "/usr/lib/qt6/bin/qmltestrunner",
+        "/usr/lib64/qt6/bin/qmltestrunner",
+    ]
+    .into_iter()
+    .map(std::path::PathBuf::from)
+    .find(|candidate| candidate.is_file())
+}
+
+#[test]
+fn a_generated_extension_reads_its_provider_state_in_both_install_shapes() {
+    let strict = std::env::var("OMABLADE_TEST_STRICT").is_ok_and(|value| value == "1");
+    let Some(runner) = qmltestrunner() else {
+        assert!(!strict, "qmltestrunner is required for this test");
+        return;
+    };
+    let temporary = tempfile::tempdir().unwrap();
+    let target = temporary.path().join("weather");
+    let output = omablade()
+        .args(["extension", "template", "acme.omablade-weather"])
+        .arg(&target)
+        .args(["--author", "Jane Doe"])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let service = fs::read_to_string(target.join("Service.qml")).unwrap();
+    assert!(
+        service.contains("\nProvider {\n"),
+        "the Omarchy plugin service is the provider itself"
+    );
+    let suite = fs::read_to_string(target.join("tests/tst_module.qml")).unwrap();
+    assert!(suite.contains("test_the_omarchy_plugin_service_is_the_provider_the_module_reads"));
+    let run = Command::new(&runner)
+        .args([
+            "-platform",
+            "offscreen",
+            "-import",
+            "tests/imports",
+            "-input",
+        ])
+        .arg("tests/tst_module.qml")
+        .current_dir(&target)
+        .env_remove("QT_QPA_PLATFORMTHEME")
+        .env("QT_QPA_PLATFORM", "offscreen")
+        .env("QT_STYLE_OVERRIDE", "Basic")
+        .env("XDG_CACHE_HOME", temporary.path().join("cache"))
+        .output()
+        .unwrap();
+    let report =
+        String::from_utf8_lossy(&run.stdout).into_owned() + &String::from_utf8_lossy(&run.stderr);
+    assert!(run.status.success(), "{report}");
+    for test in [
+        "test_the_omarchy_plugin_service_is_the_provider_the_module_reads",
+        "test_the_native_provider_is_the_same_runtime",
+    ] {
+        assert!(
+            report.contains(&format!("PASS   : qmltestrunner::WeatherModule::{test}()")),
+            "{report}"
+        );
+    }
+    assert!(
+        report
+            .lines()
+            .any(|line| line.starts_with("Totals: ") && line.contains(" 0 failed,")),
+        "{report}"
+    );
+}
+
+fn which(program: &str) -> std::path::PathBuf {
+    ["/usr/bin", "/bin", "/usr/local/bin"]
+        .into_iter()
+        .map(|directory| std::path::Path::new(directory).join(program))
+        .find(|candidate| candidate.is_file())
+        .unwrap()
+}
+
+#[test]
+fn a_bounded_read_refuses_an_oversized_manifest_and_a_non_regular_one() {
+    let temporary = tempfile::tempdir().unwrap();
+    let target = temporary.path().join("weather");
+    assert!(
+        omablade()
+            .args(["extension", "template", "acme.omablade-weather"])
+            .arg(&target)
+            .args(["--author", "Jane Doe"])
+            .output()
+            .unwrap()
+            .status
+            .success()
+    );
+    let manifest = target.join("manifest.json");
+
+    let mut oversized = fs::read(&manifest).unwrap();
+    oversized.extend(std::iter::repeat_n(b' ', 1024 * 1024 + 1));
+    fs::write(&manifest, &oversized).unwrap();
+    let refused = omablade()
+        .args(["extension", "check"])
+        .arg(&target)
+        .output()
+        .unwrap();
+    assert!(!refused.status.success());
+    assert!(
+        String::from_utf8_lossy(&refused.stderr).contains("is larger than"),
+        "{}",
+        String::from_utf8_lossy(&refused.stderr)
+    );
+
+    fs::remove_file(&manifest).unwrap();
+    assert_eq!(
+        Command::new("mkfifo")
+            .arg(&manifest)
+            .status()
+            .unwrap()
+            .code(),
+        Some(0)
+    );
+    let piped = omablade()
+        .args(["extension", "check"])
+        .arg(&target)
+        .output()
+        .unwrap();
+    assert!(!piped.status.success());
+    assert!(
+        String::from_utf8_lossy(&piped.stderr).contains("not a regular file"),
+        "{}",
+        String::from_utf8_lossy(&piped.stderr)
+    );
+}
+
+#[test]
+fn host_status_recognizes_native_omablade_without_a_legacy_plugin() {
+    let temporary = tempfile::tempdir().unwrap();
+    let state = temporary.path().join("state");
+    let native_root = state.join("omarchy/omablade");
+    fs::create_dir_all(&native_root).unwrap();
+    let app_root = temporary.path().join("app-root");
+    fs::create_dir_all(app_root.join("app")).unwrap();
+    fs::write(app_root.join("app/shell.qml"), "").unwrap();
+    let bin = temporary.path().join("bin");
+    fs::create_dir(&bin).unwrap();
+    let fixture = r#"#!/bin/sh
+case "${0##*/}" in
+  omarchy) printf '%s' '[{"id":"acme.omablade-weather","name":"Weather","enabled":true}]' ;;
+  qs) [ "$NATIVE_READY" = 1 ] && printf '{"loaded":true}' || printf '{"loaded":false}' ;;
+esac
+"#;
+    for name in ["qs", "omarchy"] {
+        let path = bin.join(name);
+        fs::write(&path, fixture).unwrap();
+        fs::set_permissions(path, fs::Permissions::from_mode(0o700)).unwrap();
+    }
+    for (ready, expected) in [("1", "ready"), ("0", "starting")] {
+        let output = omablade()
+            .args([
+                "--output",
+                "json",
+                "host-status",
+                "--companion",
+                "acme.omablade-weather",
+            ])
+            .env_clear()
+            .env("PATH", &bin)
+            .env("HOME", temporary.path())
+            .env("XDG_RUNTIME_DIR", temporary.path())
+            .env("XDG_STATE_HOME", &state)
+            .env("OMABLADE_NATIVE_STATE_ROOT", &native_root)
+            .env("OMABLADE_APP_ROOT", &app_root)
+            .env("NATIVE_READY", ready)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let status: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(status["state"], expected, "{status}");
+        assert_eq!(status["plugins"][0]["id"], "acme.omablade-weather");
+    }
+    fs::remove_file(bin.join("omarchy")).unwrap();
+    let output = omablade()
+        .args([
+            "--output",
+            "json",
+            "host-status",
+            "--companion",
+            "acme.omablade-weather",
+        ])
+        .env_clear()
+        .env("PATH", &bin)
+        .env("HOME", temporary.path())
+        .env("XDG_RUNTIME_DIR", temporary.path())
+        .env("XDG_STATE_HOME", &state)
+        .env("OMABLADE_NATIVE_STATE_ROOT", &native_root)
+        .env("OMABLADE_APP_ROOT", &app_root)
+        .env("NATIVE_READY", "1")
+        .output()
+        .unwrap();
+    let status: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(status["state"], "ready", "{status}");
+    assert_eq!(status["plugins"][0]["id"], "acme.omablade-weather");
+}

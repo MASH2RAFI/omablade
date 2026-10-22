@@ -1,0 +1,302 @@
+#!/bin/bash
+set -uo pipefail
+
+GVFS_ROOT="/run/user/$(id -u)/gvfs"
+DEST_ROOT="$HOME/.sync"
+STATE_DIR="$HOME/.local/state/omarchy/omablade/networkstorage"
+PGID_FILE="$STATE_DIR/rsync.pgid"
+TARGET_FILE="$STATE_DIR/target"
+PROGRESS_FILE="$STATE_DIR/progress-state"
+SAVED_SHARES_FILE="$STATE_DIR/saved-shares"
+
+mkdir -p "$STATE_DIR"
+
+save_uri() {
+  touch "$SAVED_SHARES_FILE"
+  grep -qxF -- "$1" "$SAVED_SHARES_FILE" 2>/dev/null || echo "$1" >> "$SAVED_SHARES_FILE"
+}
+
+forget_uri() {
+  [[ -f $SAVED_SHARES_FILE ]] || return 0
+  grep -vxF -- "$1" "$SAVED_SHARES_FILE" > "$SAVED_SHARES_FILE.tmp" 2>/dev/null || true
+  mv -f "$SAVED_SHARES_FILE.tmp" "$SAVED_SHARES_FILE"
+}
+
+NETWORK_FSTYPES_RE='^(cifs|smb3?|nfs4?|fuse\.sshfs|fuse\.gvfsd-fuse|fuse\.rclone|9p|afpfs|davfs2?|glusterfs|ceph|smbfs)$'
+
+is_stopped() {
+  [[ $(ps -o stat= -p "$1" 2>/dev/null) == T* ]]
+}
+
+mountpoint_of() { findmnt -T "$1" -no TARGET 2>/dev/null; }
+fstype_of() { findmnt -T "$1" -no FSTYPE 2>/dev/null; }
+is_network_path() {
+  local t
+  t=$(fstype_of "$1")
+  [[ -n $t && $t =~ $NETWORK_FSTYPES_RE ]]
+}
+
+share_root_of() {
+  local p="$1" mp rest
+  mp=$(mountpoint_of "$p")
+  [[ -z $mp ]] && return
+  if [[ $mp == "$GVFS_ROOT" ]]; then
+    [[ $p == "$GVFS_ROOT"/* ]] || return
+    rest="${p#"$GVFS_ROOT"/}"
+    printf '%s/%s' "$GVFS_ROOT" "${rest%%/*}"
+  else
+    printf '%s' "$mp"
+  fi
+}
+
+sync_state_for() {
+  local p="$1" dest="$2"
+  if [[ -d $p ]]; then
+    if [[ ! -e $dest ]]; then
+      echo NOT-SYNCED
+    elif [[ -n $(rsync -a --dry-run -i "$p"/ "$dest"/ 2>/dev/null) ]]; then
+      echo PARTIAL
+    else
+      echo SYNCED
+    fi
+  else
+    [[ -e $dest ]] && echo SYNCED || echo NOT-SYNCED
+  fi
+}
+
+dest_of() {
+  local p="$1" root id
+  root=$(share_root_of "$p")
+  if [[ -n $root ]] && is_network_path "$p"; then
+    id=$(basename -- "$root")
+    if [[ $p == "$root"/* ]]; then
+      printf '%s/%s/%s' "$DEST_ROOT" "$id" "${p#"$root"/}"
+    else
+      printf '%s/%s' "$DEST_ROOT" "$id"
+    fi
+  else
+    printf '%s/_local/%s' "$DEST_ROOT" "$(basename -- "$p")"
+  fi
+}
+
+cmd="${1:-}"
+shift || true
+
+case "$cmd" in
+  add-share)
+    uri="${1:?usage: omablade-networkstorage add-share <uri>}"
+    out=$(gio mount "$uri" </dev/null 2>&1)
+    rc=$?
+    if [[ $rc -eq 0 || $out == *"already mounted"* ]]; then
+      save_uri "$uri"
+      echo "MOUNTED $uri"
+      exit 0
+    fi
+    echo "ERROR ${out:-could not mount $uri}"
+    exit 1
+    ;;
+  remove-share)
+    uri="${1:?usage: omablade-networkstorage remove-share <uri>}"
+    forget_uri "$uri"
+    echo "FORGOTTEN $uri"
+    exit 0
+    ;;
+  saved-shares)
+    [[ -f $SAVED_SHARES_FILE ]] && cat "$SAVED_SHARES_FILE"
+    exit 0
+    ;;
+  disconnect)
+    path="${1:?usage: omablade-networkstorage disconnect <path>}"
+    if out=$(gio mount -u "$path" 2>&1); then
+      echo "DISCONNECTED $path"
+      exit 0
+    fi
+    echo "ERROR ${out:-could not disconnect $path}"
+    exit 1
+    ;;
+  active)
+    if [[ -f $PGID_FILE ]] && kill -0 -- "-$(cat "$PGID_FILE")" 2>/dev/null; then
+      target=$(cat "$TARGET_FILE" 2>/dev/null || echo "")
+      state=running
+      is_stopped "$(cat "$PGID_FILE")" && state=paused
+      tab=$'\t'
+      line="ACTIVE${tab}${target:-?}${tab}${state}"
+      if [[ -f $PROGRESS_FILE ]]; then
+        line+="${tab}$(cut -f2-5 "$PROGRESS_FILE")"
+      fi
+      printf '%s\n' "$line"
+    else
+      echo "IDLE"
+    fi
+    exit 0
+    ;;
+  shares)
+    if [[ -d $GVFS_ROOT ]]; then
+      shopt -s nullglob
+      for entry in "$GVFS_ROOT"/*/; do
+        entry="${entry%/}"
+        printf '%s\t%s\n' "$entry" "$(basename -- "$entry")"
+      done
+      shopt -u nullglob
+    fi
+    while IFS=$'\t' read -r tgt fst; do
+      [[ -z $tgt || $tgt == "$GVFS_ROOT" ]] && continue
+      [[ $fst =~ $NETWORK_FSTYPES_RE ]] || continue
+      printf '%s\t%s\n' "$tgt" "$(basename -- "$tgt")"
+    done < <(findmnt -rn -o TARGET,FSTYPE 2>/dev/null | sed 's/ /\t/')
+    exit 0
+    ;;
+  network-check)
+    path="${1:?usage: omablade-networkstorage network-check <path>}"
+    if is_network_path "$path"; then echo NETWORK; else echo LOCAL; fi
+    exit 0
+    ;;
+  list)
+    dir="${1:?usage: omablade-networkstorage list <dir>}"
+    [[ -d $dir ]] || { echo "ERROR not a directory: $dir"; exit 1; }
+    root=$(share_root_of "$dir")
+    id=""
+    is_network_path "$dir" && [[ -n $root ]] && id=$(basename -- "$root")
+    shopt -s dotglob nullglob
+    for entry in "$dir"/*; do
+      name=$(basename -- "$entry")
+      kind=f
+      [[ -d $entry ]] && kind=d
+      if [[ -n $id ]]; then
+        dest="$DEST_ROOT/$id/${entry#"$root"/}"
+      else
+        dest="$DEST_ROOT/_local/$name"
+      fi
+      st=NOT-SYNCED
+      [[ -e $dest ]] && st=SYNCED
+      printf '%s\t%s\t%s\n' "$kind" "$st" "$name"
+    done
+    exit 0
+    ;;
+  status)
+    path="${1:?usage: omablade-networkstorage status <path>}"
+    dest=$(dest_of "$path")
+    [[ -e $dest ]] && echo "SYNCED" || echo "NOT-SYNCED"
+    exit 0
+    ;;
+  check)
+    path="${1:?usage: omablade-networkstorage check <path>}"
+    dest=$(dest_of "$path")
+    sync_state_for "$path" "$dest"
+    exit 0
+    ;;
+  unsync)
+    [[ $# -ge 1 ]] || { echo "ERROR usage: omablade-networkstorage unsync <path...>"; exit 1; }
+    failed=0
+    for path in "$@"; do
+      dest=$(dest_of "$path")
+      case "$dest" in
+        "$DEST_ROOT"/*) ;;
+        *) echo "ERROR refusing to remove $dest"; failed=1; continue ;;
+      esac
+      if [[ ! -e $dest ]]; then
+        echo "NOT-SYNCED $path"
+        continue
+      fi
+      if rm -rf -- "$dest"; then
+        echo "UNSYNCED $path"
+      else
+        echo "ERROR could not remove $dest"
+        failed=1
+      fi
+    done
+    echo "DONE"
+    exit "$failed"
+    ;;
+  pause)
+    [[ -f $PGID_FILE ]] || { echo "ERROR nothing running"; exit 1; }
+    pgid=$(cat "$PGID_FILE")
+    kill -STOP -- "-$pgid" 2>/dev/null && echo "PAUSED" || echo "ERROR pause failed"
+    exit 0
+    ;;
+  resume)
+    [[ -f $PGID_FILE ]] || { echo "ERROR nothing running"; exit 1; }
+    pgid=$(cat "$PGID_FILE")
+    kill -CONT -- "-$pgid" 2>/dev/null && echo "RESUMED" || echo "ERROR resume failed"
+    exit 0
+    ;;
+  cancel)
+    [[ -f $PGID_FILE ]] || { echo "ERROR nothing running"; exit 1; }
+    pgid=$(cat "$PGID_FILE")
+    kill -CONT -- "-$pgid" 2>/dev/null
+    kill -TERM -- "-$pgid" 2>/dev/null
+    rm -f "$PGID_FILE" "$TARGET_FILE" "$PROGRESS_FILE"
+    echo "CANCELLED"
+    exit 0
+    ;;
+  sync) ;;
+  *) echo "ERROR usage: omablade-networkstorage sync|list|shares|status|check|unsync|network-check|pause|resume|cancel|add-share|remove-share|saved-shares|disconnect [path...]"; exit 1 ;;
+esac
+
+if [[ -f $PGID_FILE ]] && kill -0 -- "-$(cat "$PGID_FILE")" 2>/dev/null; then
+  echo "ERROR a sync is already running"
+  exit 1
+fi
+rm -f "$PGID_FILE" "$TARGET_FILE" "$PROGRESS_FILE"
+
+mkdir -p "$DEST_ROOT"
+
+[[ $# -gt 0 ]] || { echo "ERROR usage: omablade-networkstorage sync <path...>"; exit 1; }
+sources=("$@")
+total=${#sources[@]}
+
+run_one() {
+  local src="$1" dest_dir="$2" dest_name="$3"
+  mkdir -p "$dest_dir"
+
+  local fifo
+  fifo=$(mktemp -u "$STATE_DIR/progress.XXXXXX")
+  mkfifo "$fifo"
+
+  set -m
+  if [[ -d $src ]]; then
+    stdbuf -oL -eL rsync -a --partial --partial-dir=.rsync-partial \
+      --info=progress2 --outbuf=L "$src"/ "$dest_dir/$dest_name"/ > "$fifo" 2>&1 &
+  else
+    stdbuf -oL -eL rsync -a --partial --partial-dir=.rsync-partial \
+      --info=progress2 --outbuf=L "$src" "$dest_dir/" > "$fifo" 2>&1 &
+  fi
+  local rsync_pid=$!
+  set +m
+  echo "$rsync_pid" > "$PGID_FILE"
+  printf '%s' "$src" > "$TARGET_FILE"
+
+  exec 3< "$fifo"
+  local chunk="" seg bytes pctpart rate eta
+  while IFS= read -r -d $'\r' -u 3 chunk || [[ -n $chunk ]]; do
+    seg=$(grep -oP '[\d,]+\s+\d+%\s+\S+/s\s+\S+' <<< "$chunk" | tail -1)
+    if [[ -n $seg ]]; then
+      read -r bytes pctpart rate eta <<< "$seg"
+      printf 'PROGRESS\t%s\t%s\t%s\t%s\t%s\n' "${pctpart%\%}" "$bytes" "$rate" "$eta" "$src" | tee "$PROGRESS_FILE"
+    fi
+    chunk=""
+  done
+  exec 3<&-
+  rm -f "$fifo"
+
+  wait "$rsync_pid"
+}
+
+done_count=0
+for src in "${sources[@]}"; do
+  dest=$(dest_of "${src%/}")
+  dest_dir=$(dirname -- "$dest")
+  dest_name=$(basename -- "$dest")
+
+  if ! run_one "$src" "$dest_dir" "$dest_name"; then
+    rm -f "$PGID_FILE" "$TARGET_FILE" "$PROGRESS_FILE"
+    echo "ERROR rsync failed on $src"
+    exit 1
+  fi
+  done_count=$((done_count + 1))
+  printf 'PROGRESS\t%s\t-\t-\t-\t%s\n' $(( done_count * 100 / total )) "$src"
+done
+
+rm -f "$PGID_FILE" "$TARGET_FILE" "$PROGRESS_FILE"
+echo "DONE"
+exit 0

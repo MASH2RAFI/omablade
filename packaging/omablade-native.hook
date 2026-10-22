@@ -1,0 +1,11 @@
+[Trigger]
+Operation = Upgrade
+Operation = Remove
+Type = Package
+Target = omablade-native
+
+[Action]
+Description = Checking Omablade native runtime is idle...
+When = PreTransaction
+Exec = /usr/bin/flock -n -x /usr/share/omablade-native/lock /usr/bin/true
+AbortOnFail

@@ -1,0 +1,1005 @@
+{
+  "ok": true,
+  "project": "{ROOT}/memory/work/project",
+  "home": "{ROOT}/memory/home",
+  "count": 24,
+  "excludedKinds": [
+    "session-transcript",
+    "private-database",
+    "configuration"
+  ],
+  "items": [
+    {
+      "id": "eb8cc0c2dd9ed2f7",
+      "name": "CLAUDE.local.md",
+      "path": "{ROOT}/memory/work/project/CLAUDE.local.md",
+      "realpath": "{ROOT}/memory/work/project/CLAUDE.local.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "instructions",
+      "scope": "local",
+      "note": "",
+      "readers": [
+        {
+          "agent": "claude-code",
+          "loadOrder": 20,
+          "scope": "local",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "local only",
+      "bytes": 13,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 13,
+        "characters": 13,
+        "words": 2,
+        "tokens": 4
+      },
+      "badges": []
+    },
+    {
+      "id": "02504fc026414b0d",
+      "name": "AGENTS.md",
+      "path": "{ROOT}/memory/work/project/AGENTS.md",
+      "realpath": "{ROOT}/memory/work/project/AGENTS.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "instructions",
+      "scope": "project",
+      "note": "",
+      "readers": [
+        {
+          "agent": "codex",
+          "loadOrder": 20,
+          "scope": "project",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        },
+        {
+          "agent": "copilot-cli",
+          "loadOrder": 22,
+          "scope": "project",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        },
+        {
+          "agent": "opencode",
+          "loadOrder": 20,
+          "scope": "project",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        },
+        {
+          "agent": "pi",
+          "loadOrder": 20,
+          "scope": "project",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "shared agents",
+      "bytes": 16,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 16,
+        "characters": 16,
+        "words": 2,
+        "tokens": 4
+      },
+      "badges": [
+        "shared"
+      ]
+    },
+    {
+      "id": "d671b453f2053869",
+      "name": "CLAUDE.md",
+      "path": "{ROOT}/memory/work/project/CLAUDE.md",
+      "realpath": "{ROOT}/memory/work/project/CLAUDE.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "instructions",
+      "scope": "project",
+      "note": "",
+      "readers": [
+        {
+          "agent": "claude-code",
+          "loadOrder": 20,
+          "scope": "project",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": true
+        },
+        {
+          "agent": "copilot-cli",
+          "loadOrder": 22,
+          "scope": "project",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        },
+        {
+          "agent": "opencode",
+          "loadOrder": 20,
+          "scope": "project",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        },
+        {
+          "agent": "pi",
+          "loadOrder": 20,
+          "scope": "project",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "@AGENTS.md",
+      "bytes": 29,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 29,
+        "characters": 29,
+        "words": 4,
+        "tokens": 8
+      },
+      "badges": [
+        "shared",
+        "partly-excluded"
+      ]
+    },
+    {
+      "id": "4fb237f330acdad1",
+      "name": "CONTRIBUTING.md",
+      "path": "{ROOT}/memory/work/project/CONTRIBUTING.md",
+      "realpath": "{ROOT}/memory/work/project/CONTRIBUTING.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "instructions",
+      "scope": "project",
+      "note": "config fallback name",
+      "readers": [
+        {
+          "agent": "codex",
+          "loadOrder": 40,
+          "scope": "project",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "contributing fallback",
+      "bytes": 24,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 24,
+        "characters": 24,
+        "words": 2,
+        "tokens": 6
+      },
+      "badges": []
+    },
+    {
+      "id": "d8d7e75d22de3ff2",
+      "name": "copilot-instructions.md",
+      "path": "{ROOT}/memory/work/project/.github/copilot-instructions.md",
+      "realpath": "{ROOT}/memory/work/project/.github/copilot-instructions.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "instructions",
+      "scope": "project",
+      "note": "",
+      "readers": [
+        {
+          "agent": "copilot-cli",
+          "loadOrder": 20,
+          "scope": "project",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "repo copilot",
+      "bytes": 15,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 15,
+        "characters": 15,
+        "words": 2,
+        "tokens": 4
+      },
+      "badges": []
+    },
+    {
+      "id": "83c5e88a3b947061",
+      "name": "GEMINI.md",
+      "path": "{ROOT}/memory/work/project/GEMINI.md",
+      "realpath": "{ROOT}/memory/work/project/GEMINI.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "instructions",
+      "scope": "project",
+      "note": "",
+      "readers": [
+        {
+          "agent": "copilot-cli",
+          "loadOrder": 22,
+          "scope": "project",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "gemini project",
+      "bytes": 17,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 17,
+        "characters": 17,
+        "words": 2,
+        "tokens": 5
+      },
+      "badges": []
+    },
+    {
+      "id": "6c8d82c6d74d6161",
+      "name": "ok.md",
+      "path": "{ROOT}/memory/work/project/ok.md",
+      "realpath": "{ROOT}/memory/work/project/ok.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "instructions",
+      "scope": "project",
+      "note": "config fallback name",
+      "readers": [
+        {
+          "agent": "codex",
+          "loadOrder": 40,
+          "scope": "project",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "second fallback",
+      "bytes": 18,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 18,
+        "characters": 18,
+        "words": 2,
+        "tokens": 5
+      },
+      "badges": []
+    },
+    {
+      "id": "3239eda705d6ad1d",
+      "name": "AGENTS.md",
+      "path": "{ROOT}/memory/home/.codex/AGENTS.md",
+      "realpath": "{ROOT}/memory/home/.codex/AGENTS.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "instructions",
+      "scope": "user",
+      "note": "",
+      "readers": [
+        {
+          "agent": "codex",
+          "loadOrder": 11,
+          "scope": "user",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "codex user",
+      "bytes": 13,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 13,
+        "characters": 13,
+        "words": 2,
+        "tokens": 4
+      },
+      "badges": []
+    },
+    {
+      "id": "69cf9d0dd2c4db75",
+      "name": "AGENTS.md",
+      "path": "{ROOT}/memory/home/.config/opencode/AGENTS.md",
+      "realpath": "{ROOT}/memory/home/.config/opencode/AGENTS.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "instructions",
+      "scope": "user",
+      "note": "",
+      "readers": [
+        {
+          "agent": "opencode",
+          "loadOrder": 10,
+          "scope": "user",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "opencode global",
+      "bytes": 18,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 18,
+        "characters": 18,
+        "words": 2,
+        "tokens": 5
+      },
+      "badges": []
+    },
+    {
+      "id": "71e5a94feac3039c",
+      "name": "CLAUDE.md",
+      "path": "{ROOT}/memory/home/.claude/CLAUDE.md",
+      "realpath": "{ROOT}/memory/home/.claude/CLAUDE.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "instructions",
+      "scope": "user",
+      "note": "",
+      "readers": [
+        {
+          "agent": "claude-code",
+          "loadOrder": 10,
+          "scope": "user",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        },
+        {
+          "agent": "opencode",
+          "loadOrder": 11,
+          "scope": "user",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "user claude",
+      "bytes": 14,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 14,
+        "characters": 14,
+        "words": 2,
+        "tokens": 4
+      },
+      "badges": [
+        "shared"
+      ]
+    },
+    {
+      "id": "fe4be62498a9480b",
+      "name": "copilot-instructions.md",
+      "path": "{ROOT}/memory/home/.copilot/copilot-instructions.md",
+      "realpath": "{ROOT}/memory/home/.copilot/copilot-instructions.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "instructions",
+      "scope": "user",
+      "note": "",
+      "readers": [
+        {
+          "agent": "copilot-cli",
+          "loadOrder": 10,
+          "scope": "user",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "copilot user",
+      "bytes": 15,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 15,
+        "characters": 15,
+        "words": 2,
+        "tokens": 4
+      },
+      "badges": []
+    },
+    {
+      "id": "a8097b6ef1ee34c0",
+      "name": "GEMINI.md",
+      "path": "{ROOT}/memory/home/.gemini/GEMINI.md",
+      "realpath": "{ROOT}/memory/home/.gemini/GEMINI.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "instructions",
+      "scope": "user",
+      "note": "",
+      "readers": [
+        {
+          "agent": "antigravity",
+          "loadOrder": 10,
+          "scope": "user",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "antigravity global",
+      "bytes": 21,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 21,
+        "characters": 21,
+        "words": 2,
+        "tokens": 6
+      },
+      "badges": []
+    },
+    {
+      "id": "3f8f9c4cb9d3d3b7",
+      "name": "local-guide.md",
+      "path": "{ROOT}/memory/home/.config/opencode/local-guide.md",
+      "realpath": "{ROOT}/memory/home/.config/opencode/local-guide.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "instructions",
+      "scope": "user",
+      "note": "instructions entry",
+      "readers": [
+        {
+          "agent": "opencode",
+          "loadOrder": 30,
+          "scope": "user",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "opencode local guide",
+      "bytes": 23,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 23,
+        "characters": 23,
+        "words": 3,
+        "tokens": 6
+      },
+      "badges": []
+    },
+    {
+      "id": "0fe6887816ab5f1e",
+      "name": "one.md",
+      "path": "{ROOT}/memory/home/.config/opencode/docs/one.md",
+      "realpath": "{ROOT}/memory/home/.config/opencode/docs/one.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "instructions",
+      "scope": "user",
+      "note": "instructions entry",
+      "readers": [
+        {
+          "agent": "opencode",
+          "loadOrder": 30,
+          "scope": "user",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "globbed one",
+      "bytes": 14,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 14,
+        "characters": 14,
+        "words": 2,
+        "tokens": 4
+      },
+      "badges": []
+    },
+    {
+      "id": "4829ebfbb59f94c2",
+      "name": "opencode.json",
+      "path": "{ROOT}/memory/home/.config/opencode/opencode.json",
+      "realpath": "{ROOT}/memory/home/.config/opencode/opencode.json",
+      "alias": false,
+      "aliases": [],
+      "kind": "instructions",
+      "scope": "user",
+      "note": "1 remote entries not fetched",
+      "readers": [
+        {
+          "agent": "opencode",
+          "loadOrder": 31,
+          "scope": "user",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": 0,
+      "detail": "",
+      "bytes": 0,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 0,
+        "characters": null,
+        "words": null,
+        "tokens": null
+      },
+      "badges": [
+        "inline"
+      ]
+    },
+    {
+      "id": "4b4e6549f3f9f859",
+      "name": "team.instructions.md",
+      "path": "{ROOT}/memory/home/.copilot/instructions/team.instructions.md",
+      "realpath": "{ROOT}/memory/home/.copilot/instructions/team.instructions.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "instructions",
+      "scope": "user",
+      "note": "",
+      "readers": [
+        {
+          "agent": "copilot-cli",
+          "loadOrder": 11,
+          "scope": "user",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "copilot modular",
+      "bytes": 18,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 18,
+        "characters": 18,
+        "words": 2,
+        "tokens": 5
+      },
+      "badges": []
+    },
+    {
+      "id": "63f415939f44c882",
+      "name": "two.md",
+      "path": "{ROOT}/memory/home/.config/opencode/docs/two.md",
+      "realpath": "{ROOT}/memory/home/.config/opencode/docs/two.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "instructions",
+      "scope": "user",
+      "note": "instructions entry",
+      "readers": [
+        {
+          "agent": "opencode",
+          "loadOrder": 30,
+          "scope": "user",
+          "kind": "instructions",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "globbed two",
+      "bytes": 14,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 14,
+        "characters": 14,
+        "words": 2,
+        "tokens": 4
+      },
+      "badges": []
+    },
+    {
+      "id": "effc59e5cd2d7c66",
+      "name": "one.md",
+      "path": "{ROOT}/memory/home/.gemini/antigravity-cli/plugins/demo/rules/one.md",
+      "realpath": "{ROOT}/memory/home/.gemini/antigravity-cli/plugins/demo/rules/one.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "rules",
+      "scope": "plugin",
+      "note": "demo",
+      "readers": [
+        {
+          "agent": "antigravity",
+          "loadOrder": 30,
+          "scope": "plugin",
+          "kind": "rules",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "plugin rule",
+      "bytes": 14,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 14,
+        "characters": 14,
+        "words": 2,
+        "tokens": 4
+      },
+      "badges": []
+    },
+    {
+      "id": "6f96ab6e5bd25591",
+      "name": "api.md",
+      "path": "{ROOT}/memory/work/project/.claude/rules/api.md",
+      "realpath": "{ROOT}/memory/work/project/.claude/rules/api.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "rules",
+      "scope": "project",
+      "note": "",
+      "readers": [
+        {
+          "agent": "claude-code",
+          "loadOrder": 21,
+          "scope": "project",
+          "kind": "rules",
+          "discovery": "documented",
+          "excluded": true
+        }
+      ],
+      "excluded": true,
+      "inlineBytes": null,
+      "detail": "api rules",
+      "bytes": 12,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 12,
+        "characters": 12,
+        "words": 2,
+        "tokens": 3
+      },
+      "badges": [
+        "excluded"
+      ]
+    },
+    {
+      "id": "fc2bdf9f1bdc0219",
+      "name": "workspace.md",
+      "path": "{ROOT}/memory/work/project/.agents/rules/workspace.md",
+      "realpath": "{ROOT}/memory/work/project/.agents/rules/workspace.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "rules",
+      "scope": "project",
+      "note": "",
+      "readers": [
+        {
+          "agent": "antigravity",
+          "loadOrder": 20,
+          "scope": "project",
+          "kind": "rules",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "antigravity workspace",
+      "bytes": 24,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 24,
+        "characters": 24,
+        "words": 2,
+        "tokens": 6
+      },
+      "badges": []
+    },
+    {
+      "id": "e6ee34d2900bd717",
+      "name": "style.md",
+      "path": "{ROOT}/memory/home/.claude/rules/style.md",
+      "realpath": "{ROOT}/memory/home/.claude/rules/style.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "rules",
+      "scope": "user",
+      "note": "",
+      "readers": [
+        {
+          "agent": "claude-code",
+          "loadOrder": 11,
+          "scope": "user",
+          "kind": "rules",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "style",
+      "bytes": 36,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 36,
+        "characters": 36,
+        "words": 3,
+        "tokens": 9
+      },
+      "badges": []
+    },
+    {
+      "id": "032aa41466e69bc6",
+      "name": "feedback_tests.md",
+      "path": "{ROOT}/memory/home/.claude/projects/repo/memory/feedback_tests.md",
+      "realpath": "{ROOT}/memory/home/.claude/projects/repo/memory/feedback_tests.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "auto-memory",
+      "scope": "user",
+      "note": "repo",
+      "readers": [
+        {
+          "agent": "claude-code",
+          "loadOrder": 31,
+          "scope": "user",
+          "kind": "auto-memory",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "prefers pytest",
+      "bytes": 69,
+      "memoryType": "feedback",
+      "activation": "always",
+      "modified": "2026-08-31T00:00:00Z",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 69,
+        "characters": 69,
+        "words": 10,
+        "tokens": 18
+      },
+      "badges": [
+        "agent-written"
+      ]
+    },
+    {
+      "id": "4c2099b1cf53f3fa",
+      "name": "MEMORY.md",
+      "path": "{ROOT}/memory/home/.claude/projects/repo/memory/MEMORY.md",
+      "realpath": "{ROOT}/memory/home/.claude/projects/repo/memory/MEMORY.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "auto-memory",
+      "scope": "user",
+      "note": "repo",
+      "readers": [
+        {
+          "agent": "claude-code",
+          "loadOrder": 30,
+          "scope": "user",
+          "kind": "auto-memory",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "index",
+      "bytes": 8,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 8,
+        "characters": 8,
+        "words": 1,
+        "tokens": 2
+      },
+      "badges": [
+        "agent-written"
+      ]
+    },
+    {
+      "id": "9e3d4bba16f698f8",
+      "name": "SYSTEM.md",
+      "path": "{ROOT}/memory/home/.pi/agent/SYSTEM.md",
+      "realpath": "{ROOT}/memory/home/.pi/agent/SYSTEM.md",
+      "alias": false,
+      "aliases": [],
+      "kind": "system-prompt",
+      "scope": "user",
+      "note": "",
+      "readers": [
+        {
+          "agent": "pi",
+          "loadOrder": 10,
+          "scope": "user",
+          "kind": "system-prompt",
+          "discovery": "documented",
+          "excluded": false
+        }
+      ],
+      "excluded": false,
+      "inlineBytes": null,
+      "detail": "pi system",
+      "bytes": 12,
+      "memoryType": "",
+      "activation": "always",
+      "modified": "",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 18:02",
+        "bytes": 12,
+        "characters": 12,
+        "words": 2,
+        "tokens": 3
+      },
+      "badges": []
+    }
+  ],
+  "schemaVersion": 1,
+  "truncated": false,
+  "watchPaths": [
+    "/",
+    "/etc",
+    "{ROOT}/memory/home",
+    "{ROOT}/memory/home/.claude",
+    "{ROOT}/memory/home/.claude/projects",
+    "{ROOT}/memory/home/.claude/projects/repo",
+    "{ROOT}/memory/home/.claude/projects/repo/memory",
+    "{ROOT}/memory/home/.claude/rules",
+    "{ROOT}/memory/home/.codex",
+    "{ROOT}/memory/home/.config",
+    "{ROOT}/memory/home/.config/opencode",
+    "{ROOT}/memory/home/.config/opencode/docs",
+    "{ROOT}/memory/home/.copilot",
+    "{ROOT}/memory/home/.copilot/instructions",
+    "{ROOT}/memory/home/.gemini",
+    "{ROOT}/memory/home/.gemini/antigravity-cli",
+    "{ROOT}/memory/home/.gemini/antigravity-cli/plugins",
+    "{ROOT}/memory/home/.gemini/antigravity-cli/plugins/demo",
+    "{ROOT}/memory/home/.gemini/antigravity-cli/plugins/demo/rules",
+    "{ROOT}/memory/home/.pi",
+    "{ROOT}/memory/home/.pi/agent",
+    "{ROOT}/memory/work",
+    "{ROOT}/memory/work/project",
+    "{ROOT}/memory/work/project/.agents",
+    "{ROOT}/memory/work/project/.agents/rules",
+    "{ROOT}/memory/work/project/.claude",
+    "{ROOT}/memory/work/project/.claude/rules",
+    "{ROOT}/memory/work/project/.github"
+  ],
+  "watchTruncated": false
+}

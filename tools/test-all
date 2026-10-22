@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+set -uo pipefail
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
+
+usage() {
+  cat <<'EOF'
+Usage: tools/test-all [--live] [--vm] [--no-bundle] [--only STAGE[,STAGE...]]
+
+Runs every Omablade check and prints one summary. A failing stage does not
+stop the others; the exit status is non-zero when any stage fails.
+
+Stages: version-hook fmt clippy cargo-test qmllint qml theme-reload
+        design-check feature-evidence bundle live vm
+
+  --live       also run tests/live/run: the CLI end-to-end suite in a sealed
+               nested Hyprland session (opens one window on your desktop)
+  --vm         also run tests/vm/expectations/*.sh; needs OVM set to a VM harness
+  --no-bundle  skip the byte-for-byte bundled backend check
+  --only       run only the named stages
+EOF
+}
+
+live=0 vm=0 bundle=1 only=""
+while (($#)); do
+  case $1 in
+    --live) live=1 ;;
+    --vm) vm=1 ;;
+    --no-bundle) bundle=0 ;;
+    --only) only=${2:-}; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) printf 'unknown option: %s\n' "$1" >&2; usage >&2; exit 2 ;;
+  esac
+  shift
+done
+
+work="$PWD/target/test-all"
+mkdir -p "$work"
+state=$(mktemp -d "$work/state.XXXXXX")
+trap 'rm -rf -- "$state"' EXIT
+export XDG_STATE_HOME="$state"
+export OMABLADE_TEST_STRICT="${OMABLADE_TEST_STRICT:-1}"
+export PYTHONDONTWRITEBYTECODE=1
+
+summary=()
+failed=0
+wanted() { [[ -z $only || ",$only," == *",$1,"* ]]; }
+stage() {
+  local name=$1; shift
+  wanted "$name" || return 0
+  printf '\n\033[1m== %s\033[0m\n' "$name"
+  local started=$SECONDS log="$work/$name.log"
+  if "$@" >"$log" 2>&1; then
+    summary+=("PASS  $name ($((SECONDS - started))s)")
+  else
+    failed=1
+    summary+=("FAIL  $name ($((SECONDS - started))s, log: ${log#"$PWD/"})")
+    tail -n 25 "$log"
+  fi
+}
+skip() { wanted "$1" && summary+=("SKIP  $1: $2"); }
+
+pinned=$(sed -n 's/^channel *= *"\(.*\)"/\1/p' rust-toolchain.toml)
+active=$(rustc --version 2>/dev/null | awk '{print $2}')
+clippy_extra=()
+if [[ -n $pinned && $active != "$pinned" ]]; then
+  clippy_extra=(-A deprecated)
+  summary+=("NOTE  rustc $active is not the pinned $pinned; clippy allows deprecation warnings")
+fi
+
+qml_suites() {
+  local runner="" xhr suite output status=0
+  for candidate in /usr/lib/qt6/bin/qmltestrunner /usr/lib64/qt6/bin/qmltestrunner qmltestrunner-qt6; do
+    command -v "$candidate" >/dev/null 2>&1 && { runner=$(command -v "$candidate"); break; }
+  done
+  [[ -n $runner ]] || { echo "qmltestrunner not found; install qt6-declarative"; return 1; }
+  xhr=$(grep -o 'tests/qml/tst_[a-z_]*\.qml' <(grep QML_XHR_ALLOW_FILE_READ tests/run))
+  for suite in tests/qml/tst_*.qml; do
+    local env_extra=()
+    grep -qx "$suite" <<<"$xhr" && env_extra=(QML_XHR_ALLOW_FILE_READ=1)
+    output=$(env -u QT_QPA_PLATFORMTHEME QT_QPA_PLATFORM=offscreen QT_STYLE_OVERRIDE=Basic "${env_extra[@]}" \
+      "$runner" -platform offscreen -import tests/imports -input "$suite" 2>&1)
+    if grep -Eq '^Totals: [0-9]+ passed, 0 failed,' <<<"$output"; then
+      printf 'ok    %s\n' "$suite"
+    else
+      printf 'FAIL  %s\n%s\n' "$suite" "$(grep -E '^(FAIL|Totals)|Loc:' <<<"$output" | head -10)"
+      status=1
+    fi
+  done
+  return $status
+}
+
+qml_lint() {
+  local linter=""
+  for candidate in /usr/lib/qt6/bin/qmllint /usr/lib64/qt6/bin/qmllint qmllint-qt6 qmllint; do
+    command -v "$candidate" >/dev/null 2>&1 && "$candidate" --version 2>/dev/null | grep -q ' 6\.' && { linter=$(command -v "$candidate"); break; }
+  done
+  [[ -n $linter ]] || { echo "Qt 6 qmllint not found"; return 1; }
+  mapfile -t sources < <(find . \( -path ./.git -o -path ./target -o -path './.*' \) -prune -o -type f \( -name '*.qml' -o -name '*.js' \) -print | sort)
+  "$linter" --import disable --unqualified disable "${sources[@]}"
+}
+
+vm_scenarios() {
+  local status=0 scenario
+  for scenario in tests/vm/expectations/[0-9]*.sh; do
+    printf '\n-- %s\n' "$scenario"
+    bash "$scenario" || status=1
+  done
+  return $status
+}
+
+stage version-hook python3 tests/test_version_hook.py
+stage fmt cargo fmt --all -- --check
+stage clippy cargo clippy --workspace --all-targets --locked -- -D warnings "${clippy_extra[@]}"
+stage cargo-test cargo test --workspace --all-targets --locked --no-fail-fast
+stage qmllint qml_lint
+stage qml qml_suites
+stage theme-reload python3 tests/native_theme_reload.py
+stage design-check tools/design-check
+stage feature-evidence python3 tests/feature_evidence.py
+if ((bundle)) && command -v rustup >/dev/null 2>&1; then
+  stage bundle tools/bundle verify
+elif ((bundle)); then
+  skip bundle "needs rustup with the pinned $pinned toolchain"
+else
+  skip bundle "--no-bundle"
+fi
+if ((live)); then stage live tests/live/run; else skip live "pass --live"; fi
+if ((vm)) && [[ -n ${OVM:-} ]]; then
+  stage vm vm_scenarios
+elif ((vm)); then
+  skip vm "set OVM to a VM harness (CONTRIBUTING.md#testing-the-gui-in-a-vm)"
+else
+  skip vm "pass --vm"
+fi
+
+printf '\n\033[1m== summary\033[0m\n'
+printf '%s\n' "${summary[@]}"
+exit $failed

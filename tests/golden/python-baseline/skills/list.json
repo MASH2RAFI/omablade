@@ -1,0 +1,474 @@
+{
+  "ok": true,
+  "schemaVersion": 1,
+  "project": "/tmp",
+  "count": 9,
+  "truncated": false,
+  "agents": [
+    "claude-code",
+    "codex",
+    "opencode",
+    "pi",
+    "copilot-cli",
+    "antigravity"
+  ],
+  "items": [
+    {
+      "id": "d0c95c433a478ed3",
+      "name": "native-byte",
+      "detail": "A native-byte skill",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 20:01",
+        "bytes": 82,
+        "characters": 82,
+        "words": 12,
+        "tokens": 5,
+        "fileTokens": 21,
+        "uses": 0,
+        "usesAgent": 0,
+        "usesUser": 0,
+        "usesScheduled": 0,
+        "failed": 0
+      },
+      "scope": "project",
+      "root_kind": "project",
+      "source": "loose",
+      "path": "file://{ROOT}/skills/work/project/.claude/skills/native-%FF/SKILL.md",
+      "link_target": "",
+      "agents": [
+        "claude-code",
+        "copilot-cli",
+        "opencode"
+      ],
+      "agent_labels": [
+        "Claude Code",
+        "GitHub Copilot CLI",
+        "OpenCode"
+      ],
+      "roots": [
+        "{ROOT}/skills/work/project/.claude/skills"
+      ],
+      "precedence": 2,
+      "enabled": null,
+      "badges": [
+        "project",
+        "3 agents"
+      ],
+      "uses": 0,
+      "usesAgent": 0,
+      "usesUser": 0,
+      "usesScheduled": 0,
+      "failed": 0
+    },
+    {
+      "id": "31ff780f9bfcc914",
+      "name": "project-only",
+      "detail": "A project skill",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 20:01",
+        "bytes": 80,
+        "characters": 80,
+        "words": 11,
+        "tokens": 4,
+        "fileTokens": 20,
+        "uses": 0,
+        "usesAgent": 0,
+        "usesUser": 0,
+        "usesScheduled": 0,
+        "failed": 0
+      },
+      "scope": "project",
+      "root_kind": "project",
+      "source": "loose",
+      "path": "{ROOT}/skills/work/project/.claude/skills/project-only/SKILL.md",
+      "link_target": "",
+      "agents": [
+        "claude-code",
+        "copilot-cli",
+        "opencode"
+      ],
+      "agent_labels": [
+        "Claude Code",
+        "GitHub Copilot CLI",
+        "OpenCode"
+      ],
+      "roots": [
+        "{ROOT}/skills/work/project/.claude/skills"
+      ],
+      "precedence": 2,
+      "enabled": null,
+      "badges": [
+        "project",
+        "3 agents"
+      ],
+      "uses": 0,
+      "usesAgent": 0,
+      "usesUser": 0,
+      "usesScheduled": 0,
+      "failed": 0
+    },
+    {
+      "id": "dcefcd0f283dc6d3",
+      "name": "agents-user",
+      "detail": "A shared skill",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 20:01",
+        "bytes": 77,
+        "characters": 77,
+        "words": 11,
+        "tokens": 4,
+        "fileTokens": 20,
+        "uses": 0,
+        "usesAgent": 0,
+        "usesUser": 0,
+        "usesScheduled": 0,
+        "failed": 0
+      },
+      "scope": "user",
+      "root_kind": "user",
+      "source": "loose",
+      "path": "{ROOT}/skills/home/.agents/skills/agents-user/SKILL.md",
+      "link_target": "",
+      "agents": [
+        "codex",
+        "copilot-cli",
+        "opencode",
+        "pi"
+      ],
+      "agent_labels": [
+        "Codex",
+        "GitHub Copilot CLI",
+        "OpenCode",
+        "Pi"
+      ],
+      "roots": [
+        "{ROOT}/skills/home/.agents/skills"
+      ],
+      "precedence": 3,
+      "enabled": null,
+      "badges": [
+        "user",
+        "4 agents"
+      ],
+      "uses": 0,
+      "usesAgent": 0,
+      "usesUser": 0,
+      "usesScheduled": 0,
+      "failed": 0
+    },
+    {
+      "id": "03371dafbb2efde1",
+      "name": "antigravity-user",
+      "detail": "An antigravity skill",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 20:01",
+        "bytes": 93,
+        "characters": 93,
+        "words": 11,
+        "tokens": 5,
+        "fileTokens": 24,
+        "uses": 0,
+        "usesAgent": 0,
+        "usesUser": 0,
+        "usesScheduled": 0,
+        "failed": 0
+      },
+      "scope": "user",
+      "root_kind": "user",
+      "source": "loose",
+      "path": "{ROOT}/skills/home/.gemini/antigravity-cli/skills/antigravity-user/SKILL.md",
+      "link_target": "",
+      "agents": [
+        "antigravity"
+      ],
+      "agent_labels": [
+        "Google Antigravity"
+      ],
+      "roots": [
+        "{ROOT}/skills/home/.gemini/antigravity-cli/skills"
+      ],
+      "precedence": null,
+      "enabled": null,
+      "badges": [
+        "user"
+      ],
+      "uses": 0,
+      "usesAgent": 0,
+      "usesUser": 0,
+      "usesScheduled": 0,
+      "failed": 0
+    },
+    {
+      "id": "9424d1ea92f7923c",
+      "name": "claude-user",
+      "detail": "A user skill",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 20:01",
+        "bytes": 75,
+        "characters": 75,
+        "words": 11,
+        "tokens": 3,
+        "fileTokens": 19,
+        "uses": 0,
+        "usesAgent": 0,
+        "usesUser": 0,
+        "usesScheduled": 0,
+        "failed": 0
+      },
+      "scope": "user",
+      "root_kind": "user",
+      "source": "loose",
+      "path": "{ROOT}/skills/home/.claude/skills/claude-user/SKILL.md",
+      "link_target": "",
+      "agents": [
+        "claude-code",
+        "opencode"
+      ],
+      "agent_labels": [
+        "Claude Code",
+        "OpenCode"
+      ],
+      "roots": [
+        "{ROOT}/skills/home/.claude/skills"
+      ],
+      "precedence": 1,
+      "enabled": null,
+      "badges": [
+        "user",
+        "2 agents"
+      ],
+      "uses": 0,
+      "usesAgent": 0,
+      "usesUser": 0,
+      "usesScheduled": 0,
+      "failed": 0
+    },
+    {
+      "id": "3d6884ed5b148862",
+      "name": "copilot-user",
+      "detail": "A copilot skill",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 20:01",
+        "bytes": 80,
+        "characters": 80,
+        "words": 11,
+        "tokens": 4,
+        "fileTokens": 20,
+        "uses": 0,
+        "usesAgent": 0,
+        "usesUser": 0,
+        "usesScheduled": 0,
+        "failed": 0
+      },
+      "scope": "user",
+      "root_kind": "user",
+      "source": "loose",
+      "path": "{ROOT}/skills/home/.copilot/skills/copilot-user/SKILL.md",
+      "link_target": "",
+      "agents": [
+        "copilot-cli"
+      ],
+      "agent_labels": [
+        "GitHub Copilot CLI"
+      ],
+      "roots": [
+        "{ROOT}/skills/home/.copilot/skills"
+      ],
+      "precedence": null,
+      "enabled": null,
+      "badges": [
+        "user"
+      ],
+      "uses": 0,
+      "usesAgent": 0,
+      "usesUser": 0,
+      "usesScheduled": 0,
+      "failed": 0
+    },
+    {
+      "id": "17ec04beed9c5f28",
+      "name": "linked",
+      "detail": "A linked skill",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 20:01",
+        "bytes": 67,
+        "characters": 67,
+        "words": 9,
+        "tokens": 4,
+        "fileTokens": 17,
+        "uses": 0,
+        "usesAgent": 0,
+        "usesUser": 0,
+        "usesScheduled": 0,
+        "failed": 0
+      },
+      "scope": "user",
+      "root_kind": "user",
+      "source": "loose",
+      "path": "{ROOT}/skills/home/.claude/skills/linked/SKILL.md",
+      "link_target": "{ROOT}/skills/home/vault/skills/linked/SKILL.md",
+      "agents": [
+        "claude-code",
+        "codex",
+        "copilot-cli",
+        "opencode",
+        "pi"
+      ],
+      "agent_labels": [
+        "Claude Code",
+        "Codex",
+        "GitHub Copilot CLI",
+        "OpenCode",
+        "Pi"
+      ],
+      "roots": [
+        "{ROOT}/skills/home/.agents/skills",
+        "{ROOT}/skills/home/.claude/skills"
+      ],
+      "precedence": 1,
+      "enabled": null,
+      "badges": [
+        "user",
+        "5 agents"
+      ],
+      "uses": 0,
+      "usesAgent": 0,
+      "usesUser": 0,
+      "usesScheduled": 0,
+      "failed": 0
+    },
+    {
+      "id": "2e30e63185788473",
+      "name": "opencode-user",
+      "detail": "An opencode skill",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 20:01",
+        "bytes": 84,
+        "characters": 84,
+        "words": 11,
+        "tokens": 5,
+        "fileTokens": 21,
+        "uses": 0,
+        "usesAgent": 0,
+        "usesUser": 0,
+        "usesScheduled": 0,
+        "failed": 0
+      },
+      "scope": "user",
+      "root_kind": "user",
+      "source": "loose",
+      "path": "{ROOT}/skills/home/.config/opencode/skills/opencode-user/SKILL.md",
+      "link_target": "",
+      "agents": [
+        "opencode"
+      ],
+      "agent_labels": [
+        "OpenCode"
+      ],
+      "roots": [
+        "{ROOT}/skills/home/.config/opencode/skills"
+      ],
+      "precedence": null,
+      "enabled": null,
+      "badges": [
+        "user"
+      ],
+      "uses": 0,
+      "usesAgent": 0,
+      "usesUser": 0,
+      "usesScheduled": 0,
+      "failed": 0
+    },
+    {
+      "id": "13dedbba25f5b3d4",
+      "name": "pi-user",
+      "detail": "A pi skill",
+      "metrics": {
+        "updated": "2025-09-16 05:20",
+        "created": "2026-09-17 20:01",
+        "bytes": 65,
+        "characters": 65,
+        "words": 11,
+        "tokens": 3,
+        "fileTokens": 17,
+        "uses": 0,
+        "usesAgent": 0,
+        "usesUser": 0,
+        "usesScheduled": 0,
+        "failed": 0
+      },
+      "scope": "user",
+      "root_kind": "user",
+      "source": "loose",
+      "path": "{ROOT}/skills/home/.pi/agent/skills/pi-user/SKILL.md",
+      "link_target": "",
+      "agents": [
+        "pi"
+      ],
+      "agent_labels": [
+        "Pi"
+      ],
+      "roots": [
+        "{ROOT}/skills/home/.pi/agent/skills"
+      ],
+      "precedence": 0,
+      "enabled": null,
+      "badges": [
+        "user"
+      ],
+      "uses": 0,
+      "usesAgent": 0,
+      "usesUser": 0,
+      "usesScheduled": 0,
+      "failed": 0
+    }
+  ],
+  "watchPaths": [
+    "/etc",
+    "/tmp",
+    "/tmp/.agents",
+    "{ROOT}",
+    "{ROOT}/skills",
+    "{ROOT}/skills/home",
+    "{ROOT}/skills/home/.agents",
+    "{ROOT}/skills/home/.agents/skills",
+    "{ROOT}/skills/home/.agents/skills/agents-user",
+    "{ROOT}/skills/home/.claude",
+    "{ROOT}/skills/home/.claude/skills",
+    "{ROOT}/skills/home/.claude/skills/claude-user",
+    "{ROOT}/skills/home/.config/opencode",
+    "{ROOT}/skills/home/.config/opencode/skills",
+    "{ROOT}/skills/home/.config/opencode/skills/opencode-user",
+    "{ROOT}/skills/home/.copilot",
+    "{ROOT}/skills/home/.copilot/skills",
+    "{ROOT}/skills/home/.copilot/skills/copilot-user",
+    "{ROOT}/skills/home/.gemini/antigravity-cli",
+    "{ROOT}/skills/home/.gemini/antigravity-cli/skills",
+    "{ROOT}/skills/home/.gemini/antigravity-cli/skills/antigravity-user",
+    "{ROOT}/skills/home/.pi/agent",
+    "{ROOT}/skills/home/.pi/agent/skills",
+    "{ROOT}/skills/home/.pi/agent/skills/pi-user",
+    "{ROOT}/skills/home/vault/skills/linked",
+    "{ROOT}/skills/work",
+    "{ROOT}/skills/work/project",
+    "{ROOT}/skills/work/project/.claude",
+    "{ROOT}/skills/work/project/.claude/skills",
+    "file://{ROOT}/skills/work/project/.claude/skills/native-%FF",
+    "{ROOT}/skills/work/project/.claude/skills/project-only"
+  ],
+  "watchTruncated": false,
+  "usageTranscripts": 0,
+  "usageUnreadable": 0,
+  "usageIngestPending": false,
+  "usageWatchPaths": [
+    "{ROOT}/skills/home/.gemini/antigravity-cli"
+  ]
+}

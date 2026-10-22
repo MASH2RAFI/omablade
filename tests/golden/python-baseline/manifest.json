@@ -1,0 +1,25 @@
+{
+  "frozen": "2026-09-17",
+  "root": "/tmp/omablade-python-baseline",
+  "modules": {
+    "skills": {
+      "rows": 9
+    },
+    "memory": {
+      "rows": 24
+    },
+    "hooks": {
+      "rows": 33,
+      "removedId": "6122558379d80239",
+      "recoveryRecords": 1
+    },
+    "mcp": {
+      "rows": 28,
+      "removedId": "e55761bb875b511d5e902192",
+      "recoveryRecords": 1
+    },
+    "usage": {
+      "events": 9
+    }
+  }
+}

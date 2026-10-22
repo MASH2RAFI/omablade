@@ -1,0 +1,1547 @@
+{
+  "schema": 1,
+  "source": "4bb83cac9105be43a65eb41a8d8f0012cdae2cab",
+  "capture": {
+    "min_seconds": 4,
+    "max_seconds": 8,
+    "watermark": "assets/omablade-logo.svg",
+    "placement": "bottom-right",
+    "resolution": [
+      2560,
+      1440
+    ],
+    "max_blade_fraction": 0.3333333333333333,
+    "visible_padding_px": {
+      "right": 32,
+      "bottom": 32
+    },
+    "wallpaper": "/usr/share/omarchy/themes/tokyo-night/backgrounds/0-winding-road.jpg",
+    "session": "local isolated Hyprland window on workspace 9",
+    "visible_padding_measurement": {
+      "bounds": [
+        2144,
+        1330,
+        2528,
+        1408
+      ],
+      "right_px": 32,
+      "bottom_px": 32,
+      "method": "paired real compositor frames with the watermark overlay on and off"
+    }
+  },
+  "features": [
+    {
+      "id": "workspace/blades",
+      "title": "Open and close sidebars",
+      "summary": "Open either edge independently. The Files pane keeps its folder when its blade closes; reopening restores the pane.",
+      "command": "omablade blade open left\nomablade blade open right\nomablade blade close left",
+      "proof": "The right blade opens, then the left blade closes.",
+      "expectations": [
+        "E-01"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "workspace/focus",
+      "title": "Move focus between blades and applications",
+      "summary": "Focus a blade before using its keyboard navigation. Use release to return keyboard input to the application.",
+      "command": "omablade blade focus left\nomablade blade focus right\nomablade blade release",
+      "proof": "Focus moves from the left blade to the right blade.",
+      "expectations": [
+        "E-01",
+        "E-43"
+      ],
+      "status": "pending-capture",
+      "limitations": "The clip covers switching blades; returning to an application is a separate command."
+    },
+    {
+      "id": "workspace/docking",
+      "title": "Dock and float a blade",
+      "summary": "Undock a blade into a window when you need a movable sidebar. Dock it again to reserve space at its original edge.",
+      "command": "omablade blade undock left\nomablade blade dock left",
+      "proof": "The Files pane changes placement and returns with the same folder.",
+      "expectations": [
+        "E-21"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "workspace/resizing",
+      "title": "Resize a blade",
+      "summary": "Drag the blade edge or set its width in pixels. A docked blade reserves its new width beside tiled applications.",
+      "command": "omablade blade width left 500\nomablade blade width left 700",
+      "proof": "The blade widens from 500 to 700 pixels. Both widths remain below one-third of the recorded screen.",
+      "expectations": [
+        "E-21"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "workspace/sections",
+      "title": "Arrange sections",
+      "summary": "Add another pane as a section within a blade. Each section has its own pane state and can contain tabs.",
+      "command": "omablade blade add left notes",
+      "proof": "A Notes section appears alongside the existing Files section.",
+      "expectations": [
+        "E-20"
+      ],
+      "status": "pending-capture",
+      "limitations": "This clip proves adding a section, not every rearrangement gesture."
+    },
+    {
+      "id": "workspace/tabs",
+      "title": "Switch pane tabs",
+      "summary": "Tabs share a section. Select a tab to show its pane while retaining the other tab's state. Slot and tab numbers in the CLI start at zero.",
+      "command": "omablade blade tab-set left 0 1",
+      "proof": "The second tab becomes active in the first section.",
+      "expectations": [
+        "E-20",
+        "E-22"
+      ],
+      "status": "pending-capture",
+      "limitations": "Closing tabs is supported by the tab menu but is not demonstrated in this clip."
+    },
+    {
+      "id": "workspace/move-tabs",
+      "title": "Move tabs between sections",
+      "summary": "Move a section's pane into another section as a tab. The destination retains its existing panes.",
+      "command": "omablade blade tab-into left 1 left 0",
+      "proof": "The second section moves into the first section's tab strip.",
+      "expectations": [
+        "E-20",
+        "E-42"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "workspace/monitors",
+      "title": "Choose where blades appear",
+      "summary": "Open blade settings to choose the active monitor, all monitors, or a named monitor. A named lock keeps placement tied to that output.",
+      "command": "omablade blade settings left",
+      "proof": "The capture locks its blade to its actual named output and reports that output.",
+      "expectations": [
+        "E-34"
+      ],
+      "status": "pending-capture",
+      "limitations": "Only one output is present in this recording; it does not demonstrate switching physical monitors."
+    },
+    {
+      "id": "workspace/persistence",
+      "title": "Restore saved layouts",
+      "summary": "Layouts and pane state are saved automatically. Closing and reopening the native view restores the saved arrangement.",
+      "command": "omablade blades",
+      "proof": "A restarted native view restores the recorded pane layout and width.",
+      "expectations": [
+        "E-18"
+      ],
+      "status": "pending-capture",
+      "limitations": "The recording restarts only a disposable profile."
+    },
+    {
+      "id": "workspace/theme",
+      "title": "Follow Omarchy themes",
+      "summary": "Omablade follows the active Omarchy theme. Change the desktop theme with Omarchy's theme selector; the blade updates its colors.",
+      "command": "",
+      "proof": "The capture profile changes from Tokyo Night to Catppuccin.",
+      "expectations": [
+        "native_theme_reload"
+      ],
+      "status": "pending-capture",
+      "limitations": "The recording uses the private profile's theme files and does not change the working desktop."
+    },
+    {
+      "id": "workspace/hyprland-look",
+      "title": "Look like your Hyprland windows",
+      "summary": "Docked blades take rounding, border width and colours, opacity and gaps from Hyprland and follow every config reload.",
+      "command": "omablade status -o json | jq .hyprLook\nhyprctl reload",
+      "proof": "The blade frame follows a changed col.active_border after a Hyprland reload.",
+      "expectations": [
+        "E-17-16"
+      ],
+      "status": "pending-capture",
+      "limitations": "A window-mode blade is decorated by Hyprland itself."
+    },
+    {
+      "id": "workspace/bar",
+      "title": "Follow desktop bar placement",
+      "summary": "Docked blades account for the Omarchy bar. Showing or hiding the bar updates the space available to the blade.",
+      "command": "",
+      "proof": "The capture profile hides its bar and then restores it.",
+      "expectations": [
+        "E-44"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "workspace/settings",
+      "title": "Configure blade behavior",
+      "summary": "Open the settings panel from the blade gear. Search for a preference to find controls for panes, appearance, placement, and desktop integrations.",
+      "command": "omablade blade settings left",
+      "proof": "The live settings form opens with the blade's current preferences.",
+      "expectations": [
+        "E-17"
+      ],
+      "status": "pending-capture",
+      "limitations": "The clip demonstrates opening the form, not saving every setting."
+    },
+    {
+      "id": "panes/files/navigation",
+      "title": "Navigate the file tree",
+      "summary": "Open a folder with Enter or a double-click. Use the parent action to move up; the CLI can navigate to the same paths.",
+      "command": "omablade navigate /path/to/project/docs\nomablade up",
+      "proof": "The tree enters docs and returns to its parent.",
+      "expectations": [
+        "E-03",
+        "E-06"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/files/folding",
+      "title": "Expand and collapse folders",
+      "summary": "Expand a folder to inspect children in place. The root stays fixed, so neighboring folders remain available.",
+      "command": "omablade expand /path/to/project/docs",
+      "proof": "Children appear beneath docs without replacing the root.",
+      "expectations": [
+        "E-04"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/files/selection",
+      "title": "Select multiple files",
+      "summary": "Use Ctrl-click to add individual rows or Shift-click for a range. The CLI can set and read the same selection.",
+      "command": "omablade select /path/to/notes.txt /path/to/package.json\nomablade selection",
+      "proof": "Two files become selected and the CLI returns their paths.",
+      "expectations": [
+        "E-05"
+      ],
+      "status": "pending-capture",
+      "limitations": "The recording uses CLI selection; it does not show the mouse gestures."
+    },
+    {
+      "id": "panes/files/watching",
+      "title": "Follow filesystem changes",
+      "summary": "Omablade watches the current location for filesystem changes. Files created by an editor or terminal appear in the tree automatically.",
+      "command": "",
+      "proof": "Creating a sample file outside Omablade adds its row to the open folder.",
+      "expectations": [
+        "E-02"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/files/location",
+      "title": "Enter and revisit paths",
+      "summary": "Enter a path in the location field or navigate from the CLI. Back and Forward revisit the folder history.",
+      "command": "omablade navigate /path/to/project/docs\nomablade back\nomablade forward",
+      "proof": "Back returns to the previous folder and Forward returns to docs.",
+      "expectations": [
+        "E-06",
+        "E-23"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/files/hidden-files",
+      "title": "Show hidden entries",
+      "summary": "Toggle hidden entries to inspect dotfiles and hidden folders. Their visibility is a view preference.",
+      "command": "omablade hidden show\nomablade hidden hide",
+      "proof": "Hidden entries become visible in the sample project.",
+      "expectations": [
+        "E-07"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/files/sorting",
+      "title": "Sort file rows",
+      "summary": "Click a metadata heading to sort by that field. Clicking it again reverses the direction.",
+      "command": "",
+      "proof": "The Size heading changes the file-row ordering.",
+      "expectations": [
+        "E-24"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/files/columns",
+      "title": "Choose file columns",
+      "summary": "Choose which metadata columns appear beside file names. The CLI accepts a comma-separated list.",
+      "command": "omablade columns size,modified",
+      "proof": "Size and Modified columns appear with actual file metadata.",
+      "expectations": [
+        "E-24"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/files/density",
+      "title": "Adjust row density",
+      "summary": "Use the row-size controls in the Files footer to change how compactly entries are displayed.",
+      "command": "",
+      "proof": "The row-size control increases the spacing between file rows.",
+      "expectations": [
+        "E-17"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/files/toolbar",
+      "title": "Customize the tree toolbar",
+      "summary": "Open settings, search for toolbar, and toggle the controls you want to keep visible. Removing a button does not remove its underlying action.",
+      "command": "omablade blade settings left",
+      "proof": "The Screenshots toolbar button is hidden through the real settings form.",
+      "expectations": [
+        "E-17"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/files/search",
+      "title": "Search the current folder",
+      "summary": "Enter a query in the Files search field. Clear it to return to the unfiltered tree.",
+      "command": "omablade search notes\nomablade clear-search",
+      "proof": "The query narrows the tree to matching file names.",
+      "expectations": [
+        "E-09"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/files/search-syntax",
+      "title": "Combine search filters",
+      "summary": "Combine search terms with filters and exclusions. For example, format:txt selects text-file names while -draft excludes names containing draft.",
+      "command": "omablade search \"format:txt -draft\"",
+      "proof": "Only sample entries matching the combined query remain.",
+      "expectations": [
+        "E-24"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/files/deep-search",
+      "title": "Search nested folders",
+      "summary": "Enable deep search to find entries below the current folder, including inside collapsed directories.",
+      "command": "omablade search-deep on\nomablade search getting",
+      "proof": "A nested getting-started document appears with its location.",
+      "expectations": [
+        "E-09"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/files/quick-navigation",
+      "title": "Jump to recent folders",
+      "summary": "Open quick navigation to find a location from its ranked folder list. Choose a result to navigate there.",
+      "command": "omablade quicknav",
+      "proof": "The real quick-navigation overlay opens with available locations.",
+      "expectations": [
+        "E-10"
+      ],
+      "status": "pending-capture",
+      "limitations": "The recording covers the overlay, not a completed selection."
+    },
+    {
+      "id": "panes/files/favorites",
+      "title": "Pin favorite locations",
+      "summary": "Pin a folder to keep it available in the Favorites strip. Click the favorite to navigate back to that location.",
+      "command": "omablade pin /path/to/project/docs\nomablade favorites",
+      "proof": "The docs folder is pinned and returned in the favorites list.",
+      "expectations": [
+        "E-16"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/files/folder-colors",
+      "title": "Color folders",
+      "summary": "Assign a color to a folder to recognize it quickly. The theme supplies the palette; Files settings control which parts of the row receive the color.",
+      "command": "omablade set-folder-color /path/to/project/docs red",
+      "proof": "The docs folder receives the chosen red color.",
+      "expectations": [
+        "E-24"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/files/git-status",
+      "title": "See Git changes",
+      "summary": "File rows show Git changes for the current repository. Refresh the repository state after an external Git operation when needed.",
+      "command": "omablade git-refresh",
+      "proof": "The blade's indicators are visible beside the sample repository's actual modified and untracked files.",
+      "expectations": [
+        "E-07"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/files/git-summary",
+      "title": "Choose repository summary fields",
+      "summary": "Choose the repository summary fields you want beside the root. These summarize the current repository state.",
+      "command": "omablade git-summary branch modified untracked",
+      "proof": "The summary shows the branch, modified count, and untracked count.",
+      "expectations": [
+        "E-07"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/files/drive-space",
+      "title": "See drive capacity",
+      "summary": "Enable drive usage under the toolbar in Files settings. The capacity display refers to the filesystem containing the current location.",
+      "command": "omablade space /path/to/project",
+      "proof": "The CLI returns capacity information for the filesystem behind the visible folder.",
+      "expectations": [
+        "E-98"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/files/drives",
+      "title": "Browse mounted drives",
+      "summary": "Use the Drives toolbar button to inspect available storage locations. Mounted locations can be opened in Files.",
+      "command": "",
+      "proof": "The Drives view opens and lists the available locations.",
+      "expectations": [
+        "E-23"
+      ],
+      "status": "pending-capture",
+      "limitations": "The clip does not mount a user device; see the separate device-actions demonstration."
+    },
+    {
+      "id": "panes/files/media-grid",
+      "title": "Browse images and video posters",
+      "summary": "Use the Media toolbar button in a folder of images and videos. Images receive thumbnails; supported videos receive static posters.",
+      "command": "",
+      "proof": "The sample folder changes from a file tree to a real media grid, including a video poster.",
+      "expectations": [
+        "media_formats"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/files/media-sort",
+      "title": "Sort media newest or oldest first",
+      "summary": "Media opens newest first, using file modification time. The toolbar arrow switches between descending (newest first) and ascending (oldest first), replacing the Git and column controls while Media is active.",
+      "command": "",
+      "proof": "The real grid starts with 23 September, reverses to 18 September, then returns to newest first.",
+      "expectations": [
+        "media-date-order"
+      ],
+      "status": "pending-capture",
+      "limitations": "Generated image fixtures have deliberately assigned modification dates. The chosen direction is saved per Files pane; ordinary file-tree sorting stays independent."
+    },
+    {
+      "id": "panes/files/media-size",
+      "title": "Resize media thumbnails",
+      "summary": "Use the media-size control in the footer to change thumbnail dimensions. The current media folder stays open.",
+      "command": "",
+      "proof": "The grid grows its thumbnails after the size control is activated.",
+      "expectations": [
+        "media_queue"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/files/media-calendar",
+      "title": "Navigate the media calendar",
+      "summary": "Use the media timeline to navigate between dated groups. Populated periods reflect timestamps from the files in the current media collection.",
+      "command": "",
+      "proof": "The timeline changes to a broader calendar view.",
+      "expectations": [
+        "media-timeline"
+      ],
+      "status": "pending-capture",
+      "limitations": "The clip uses generated sample images with deliberately assigned timestamps."
+    },
+    {
+      "id": "panes/files/media-hours",
+      "title": "Inspect hourly media activity",
+      "summary": "Drill into a day to inspect its hourly distribution. Empty hours retain their place so time remains comparable.",
+      "command": "",
+      "proof": "The timeline shows the selected day's hourly bars.",
+      "expectations": [
+        "media-timeline"
+      ],
+      "status": "pending-capture",
+      "limitations": "The sample files have assigned times; this is not a live activity feed."
+    },
+    {
+      "id": "panes/properties/metadata",
+      "title": "Inspect file properties",
+      "summary": "Add Properties beside Files, then select an entry. Properties follows the selected path and shows its metadata.",
+      "command": "omablade select /path/to/notes.txt",
+      "proof": "Properties shows the selected sample file's actual path, type, and size.",
+      "expectations": [
+        "E-08"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/properties/text-preview",
+      "title": "Preview text",
+      "summary": "Select a supported text file while Properties is open. The preview displays bounded file content without opening an editor.",
+      "command": "omablade select /path/to/getting-started.md",
+      "proof": "Properties displays the actual sample document text.",
+      "expectations": [
+        "E-08"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/properties/media-preview",
+      "title": "Preview images and posters",
+      "summary": "Select an image or supported video while Properties is open. Video previews are still posters.",
+      "command": "omablade select /path/to/image.png",
+      "proof": "Properties displays the selected sample image.",
+      "expectations": [
+        "E-08",
+        "media_preview"
+      ],
+      "status": "pending-capture",
+      "limitations": "This clip proves image preview; the media-grid clip also shows the corrected MP4 poster."
+    },
+    {
+      "id": "panes/notes/editing",
+      "title": "Write persistent notes",
+      "summary": "Open Notes and type directly into its editor. Notes saves changes automatically in the pane state.",
+      "command": "omablade blade set left notes",
+      "proof": "The note text changes to A saved release note and the saved state contains that text.",
+      "expectations": [
+        "E-25"
+      ],
+      "status": "pending-capture",
+      "limitations": "This clip proves editing and autosave; native-view persistence has a separate recording."
+    },
+    {
+      "id": "panes/notes/notebooks",
+      "title": "Manage note tabs",
+      "summary": "Use note tabs to keep separate texts in one Notes pane. Select a tab to restore its note.",
+      "command": "",
+      "proof": "The recording switches between notes while each retains its text.",
+      "expectations": [
+        "E-25"
+      ],
+      "status": "pending-capture",
+      "limitations": "It does not demonstrate every create, rename, and close action."
+    },
+    {
+      "id": "panes/notes/counts",
+      "title": "Read note counts",
+      "summary": "The Notes footer reports the current note's word and character counts. Counts update as you edit.",
+      "command": "",
+      "proof": "Editing the sample note changes the displayed counts.",
+      "expectations": [
+        "E-25"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/skills/inventory",
+      "title": "Browse agent skills",
+      "summary": "Skills discovers supported agents' skill files and shows their sources. Open an entry to inspect its files without invoking the skill.",
+      "command": "omablade blade set left skills",
+      "proof": "The pane lists the disposable profile's discovered skills and agent ownership.",
+      "expectations": [
+        "E-41"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/skills/activity",
+      "title": "Inspect skill activity",
+      "summary": "Skills summarizes usage recorded in supported agents' local transcripts. Inspect a day or entry to see its recorded activity.",
+      "command": "omablade usage skills",
+      "proof": "The pane and CLI show usage imported from the sample transcripts.",
+      "expectations": [
+        "E-48"
+      ],
+      "status": "pending-capture",
+      "limitations": "The activity data is synthetic fixture data; no live agent execution is claimed."
+    },
+    {
+      "id": "panes/skills/day-filter",
+      "title": "Filter skills by day",
+      "summary": "Select a populated day in the Skills activity grid to narrow the inventory to skills used on that day.",
+      "command": "",
+      "proof": "Selecting a sample activity day changes the visible skill inventory.",
+      "expectations": [
+        "E-48"
+      ],
+      "status": "pending-capture",
+      "limitations": "The timestamps and usage events come from synthetic local transcripts."
+    },
+    {
+      "id": "panes/skills/management",
+      "title": "Share and unshare skills",
+      "summary": "Enable agent management in preferences to manage which supported agents receive a skill. Unsharing an owned link leaves the original skill source intact.",
+      "command": "omablade preferences --agent-management true",
+      "proof": "The backend removes and restores the sample skill's Codex link while retaining the Claude source.",
+      "expectations": [
+        "E-36"
+      ],
+      "status": "pending-capture",
+      "limitations": "This clip proves provider-level sharing changes; it does not disable the original source skill."
+    },
+    {
+      "id": "panes/memory/inventory",
+      "title": "Browse agent instructions",
+      "summary": "Memory discovers supported agents' instruction files. The pane identifies the source so you can inspect the instructions that apply.",
+      "command": "omablade blade set left memory",
+      "proof": "The pane displays the sample profile's actual instruction files and their agents.",
+      "expectations": [
+        "E-41"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/memory/management",
+      "title": "Share instruction files",
+      "summary": "Agent management can share supported instruction files with another agent. Managed links can be removed and restored without deleting their original source.",
+      "command": "omablade preferences --agent-management true",
+      "proof": "The sample instruction's OpenCode link is removed and restored.",
+      "expectations": [
+        "E-36"
+      ],
+      "status": "pending-capture",
+      "limitations": "The recording uses the real management provider against disposable files."
+    },
+    {
+      "id": "panes/hooks/inventory",
+      "title": "Inspect agent hooks",
+      "summary": "Hooks shows configured hook events and their commands. Reading this inventory does not execute those commands.",
+      "command": "omablade blade set left hooks",
+      "proof": "The pane displays the sample PostToolUse hook and its configuration.",
+      "expectations": [
+        "E-41"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/hooks/management",
+      "title": "Manage shared hooks",
+      "summary": "With agent management enabled, share a compatible hook with another supported agent or remove its managed copy.",
+      "command": "",
+      "proof": "The sample hook's managed Copilot CLI configuration is removed and restored.",
+      "expectations": [
+        "E-36"
+      ],
+      "status": "pending-capture",
+      "limitations": "The source hook is retained; the sample command is not executed."
+    },
+    {
+      "id": "panes/mcp/inventory",
+      "title": "Inspect MCP servers",
+      "summary": "MCP lists server definitions discovered in supported agents' configuration. Inspecting a definition does not start the server.",
+      "command": "omablade blade set left mcp",
+      "proof": "The pane shows the sample server and its configured agent.",
+      "expectations": [
+        "E-41"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/mcp/activity",
+      "title": "Inspect MCP calls",
+      "summary": "Inspect MCP usage collected from supported local transcripts. Tool, resource, and prompt activity depends on what the agent recorded.",
+      "command": "omablade usage mcp",
+      "proof": "The CLI reports the sample server's imported call counts.",
+      "expectations": [
+        "E-48"
+      ],
+      "status": "pending-capture",
+      "limitations": "These are synthetic transcript events, not a connection to a live MCP server."
+    },
+    {
+      "id": "panes/mcp/management",
+      "title": "Manage shared MCP definitions",
+      "summary": "Agent management can add or remove a compatible server definition for another supported agent.",
+      "command": "",
+      "proof": "The sample server's Claude Code configuration is removed and restored.",
+      "expectations": [
+        "E-36"
+      ],
+      "status": "pending-capture",
+      "limitations": "The source definition is preserved and the sample server is not launched."
+    },
+    {
+      "id": "panes/branches/branches",
+      "title": "Inspect Git branches",
+      "summary": "Open Branches for the current repository to inspect branch names and linked worktrees.",
+      "command": "omablade branches\nomablade branches list",
+      "proof": "The pane and CLI list the sample repository's actual local branches.",
+      "expectations": [
+        "E-49"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/branches/worktrees",
+      "title": "Discover linked worktrees",
+      "summary": "Branches identifies worktrees linked to the repository. Their paths distinguish checkouts that may have different branches or changes.",
+      "command": "omablade branches list",
+      "proof": "The linked docs-preview worktree appears with its actual path.",
+      "expectations": [
+        "E-49"
+      ],
+      "status": "pending-capture",
+      "limitations": "This clip proves worktree discovery, not opening that checkout in an application."
+    },
+    {
+      "id": "panes/branches/status",
+      "title": "Inspect worktree status",
+      "summary": "Branch and worktree summaries expose the checkout's current Git state. Refresh after external changes when necessary.",
+      "command": "omablade git-refresh\nomablade branches list",
+      "proof": "The branch listing reports the sample checkout's current change information.",
+      "expectations": [
+        "E-49"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/welcome/onboarding",
+      "title": "Start with the Welcome pane",
+      "summary": "Welcome introduces the built-in panes and basic sidebar controls. Reopen it from the pane chooser whenever you need the reference.",
+      "command": "omablade blade set left welcome",
+      "proof": "The bundled Welcome pane opens with its navigation and pane choices.",
+      "expectations": [
+        "E-29"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/welcome/catalogue",
+      "title": "Choose built-in panes",
+      "summary": "The built-in pane catalogue includes Files, Notes, Properties, Branches, Skills, Memory, Hooks, MCP, and Welcome. These do not require separate companion downloads.",
+      "command": "omablade modules",
+      "proof": "The CLI lists the available pane registrations beside Welcome.",
+      "expectations": [
+        "E-29"
+      ],
+      "status": "pending-capture",
+      "limitations": "The clip lists the catalogue; it does not activate every pane."
+    },
+    {
+      "id": "panes/welcome/help",
+      "title": "Read offline help",
+      "summary": "Expand a help topic in Welcome to read the bundled instructions offline.",
+      "command": "",
+      "proof": "Arrange your blades expands into readable local help text.",
+      "expectations": [
+        "E-29"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "operations/new-file",
+      "title": "Create a file",
+      "summary": "Create a file in the current or specified folder. The new entry appears in the watched tree.",
+      "command": "omablade new-file new-note.txt /path/to/project --wait",
+      "proof": "A new regular file appears on disk and in Files.",
+      "expectations": [
+        "E-12"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "operations/new-folder",
+      "title": "Create a folder",
+      "summary": "Create a directory in the current or specified folder.",
+      "command": "omablade new-folder new-folder /path/to/project --wait",
+      "proof": "The new directory appears on disk and in Files.",
+      "expectations": [
+        "E-12"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "operations/rename",
+      "title": "Rename a file",
+      "summary": "Rename a file from its action menu or the CLI. Supply the new name and the existing path.",
+      "command": "omablade rename renamed.txt /path/to/old-name.txt --wait",
+      "proof": "The sample file changes name while retaining its contents.",
+      "expectations": [
+        "E-12"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "operations/copy-paste",
+      "title": "Copy and paste files",
+      "summary": "Copy selected paths, navigate to a destination, and paste. The source remains available.",
+      "command": "omablade copy /path/to/notes.txt\nomablade paste /path/to/destination --wait",
+      "proof": "The destination receives a byte-identical copy while the source remains.",
+      "expectations": [
+        "E-13"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "operations/move",
+      "title": "Move files",
+      "summary": "Move selected files to a destination directory. A successful move removes their previous paths.",
+      "command": "omablade move-to /path/to/destination /path/to/move-me.txt --wait",
+      "proof": "The destination contains the sample file's original bytes and the old path is absent.",
+      "expectations": [
+        "E-13"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "operations/drag-drop",
+      "title": "Drag files between locations",
+      "summary": "Drag a file onto a destination folder in the tree. Omablade performs the selected drag action and refreshes the affected locations.",
+      "command": "",
+      "proof": "A real pointer drag moves alpha.txt into the destination folder.",
+      "expectations": [
+        "E-13",
+        "E-26"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "operations/conflicts",
+      "title": "Resolve destination conflicts",
+      "summary": "When a destination name already exists, choose how to resolve the collision in the dialog. Keep both preserves the existing file and gives the incoming file another name.",
+      "command": "omablade copy-to /path/to/destination /path/to/notes.txt",
+      "proof": "Keep both creates notes copy.txt while the original notes.txt remains unchanged.",
+      "expectations": [
+        "E-28"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "operations/trash",
+      "title": "Trash files",
+      "summary": "Move a disposable file to desktop Trash when you want a recoverable removal. The UI can ask for confirmation; the CLI requires an explicit confirmation flag for this example.",
+      "command": "omablade trash /path/to/trash-demo.txt --yes --wait",
+      "proof": "The file leaves its original folder and is discoverable in Trash.",
+      "expectations": [
+        "E-14"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "operations/restore",
+      "title": "Restore from Trash",
+      "summary": "Restore a selected Trash item to its original location. Use its item identifier rather than assuming names are unique.",
+      "command": "omablade trash-list\nomablade trash-restore --id ITEM_ID",
+      "proof": "The sample file returns from Trash with its original contents.",
+      "expectations": [
+        "E-14"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "operations/permanent-delete",
+      "title": "Permanently delete Trash items",
+      "summary": "Permanently delete only the Trash entries you intend to remove. This action cannot be undone through Trash.",
+      "command": "omablade trash-delete --id ITEM_ID --yes",
+      "proof": "The selected disposable Trash item is removed permanently.",
+      "expectations": [
+        "E-14"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "operations/undo-redo",
+      "title": "Undo and redo file operations",
+      "summary": "Undo reverses an eligible completed operation; redo reapplies it. Inspect operation history when you need the recorded result.",
+      "command": "omablade undo --wait\nomablade redo --wait",
+      "proof": "A sample rename is undone and then reapplied without losing the file contents.",
+      "expectations": [
+        "E-15"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "operations/archive-list",
+      "title": "Inspect archive contents",
+      "summary": "Inspect an archive's members before extracting it. Listing does not write those members into the destination filesystem.",
+      "command": "omablade archive-list /path/to/sample.tar",
+      "proof": "The real sample archive's member names are listed.",
+      "expectations": [
+        "E-28"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "operations/archive-extract",
+      "title": "Extract an archive",
+      "summary": "Extract a supported archive into a chosen destination. Omablade reports the result and updates the folder tree.",
+      "command": "omablade extract /path/to/sample.tar --to /path/to/extracted",
+      "proof": "The expected sample members appear in the destination with their contents intact.",
+      "expectations": [
+        "E-28"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "operations/archive-create",
+      "title": "Create an archive",
+      "summary": "Use Create archive from the file action menu to package selected files. The backend also exposes the operation for scripted integrations.",
+      "command": "omablade native backend -- archive-create --source /path/to/notes.txt --destination /path/to/notes.zip --format zip",
+      "proof": "A ZIP archive is created and its contents match the selected sample file.",
+      "expectations": [
+        "E-28"
+      ],
+      "status": "pending-capture",
+      "limitations": "The clip invokes the backend operation; it does not demonstrate the menu form."
+    },
+    {
+      "id": "operations/permissions",
+      "title": "Change file permissions",
+      "summary": "Use the permissions action for an eligible local file. Integrations can invoke the same backend operation with an octal mode.",
+      "command": "omablade native backend -- permissions-set --path /path/to/file.txt --mode 644",
+      "proof": "The sample file changes to mode 644, confirmed by filesystem metadata.",
+      "expectations": [
+        "E-28"
+      ],
+      "status": "pending-capture",
+      "limitations": "The clip proves the backend mutation, not interaction with the permissions form."
+    },
+    {
+      "id": "operations/progress-cancel",
+      "title": "Track and cancel work",
+      "summary": "Long-running work returns an operation identifier. Inspect the operation or request cancellation; the result distinguishes cancelled and partial work.",
+      "command": "omablade cancel-operation --yes\nomablade operation OPERATION_ID",
+      "proof": "A real multi-file copy is cancelled and reports its cancelled result.",
+      "expectations": [
+        "E-28"
+      ],
+      "status": "pending-capture",
+      "limitations": "The operation-result response is consumed when fetched; a later repeated query may report an unknown identifier."
+    },
+    {
+      "id": "operations/audit",
+      "title": "Inspect operation history",
+      "summary": "Inspect the history of file operations performed through Omablade. Entries describe completed actions and their outcomes.",
+      "command": "omablade history",
+      "proof": "The CLI shows real history entries from the disposable profile.",
+      "expectations": [
+        "E-15",
+        "E-27"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "integrations/open-files",
+      "title": "Open files in applications",
+      "summary": "Open a selected file in its associated application. The target application receives the file path.",
+      "command": "omablade open /path/to/notes.txt",
+      "proof": "The sample text file opens in the capture profile's real associated editor.",
+      "expectations": [
+        "E-23"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "integrations/editor",
+      "title": "Edit in the configured editor",
+      "summary": "Use Edit to open a file in the configured editor. This keeps the editor workflow accessible from either the tree or CLI.",
+      "command": "omablade edit /path/to/notes.txt",
+      "proof": "A real Neovim window opens the selected text file.",
+      "expectations": [
+        "E-23"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "integrations/terminal",
+      "title": "Open a file in a new terminal",
+      "summary": "Open a selected text file in Neovim inside a new terminal. A folder-only selection opens a shell for that location.",
+      "command": "omablade drop-run terminal /path/to/notes.txt --at 1200,220",
+      "proof": "A new real terminal runs Neovim with the sample file.",
+      "expectations": [
+        "hyprland_desktop"
+      ],
+      "status": "pending-capture",
+      "limitations": "Screen coordinates identify the target; replace them with a point on your own desktop."
+    },
+    {
+      "id": "integrations/copy-path",
+      "title": "Copy and paste paths",
+      "summary": "Copy the selected path to the clipboard, then paste it into another application.",
+      "command": "omablade copy-path /path/to/notes.txt",
+      "proof": "The real Wayland clipboard contains the selected sample path.",
+      "expectations": [
+        "E-13",
+        "E-26"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "integrations/drop-wheel",
+      "title": "Choose a drag action",
+      "summary": "Open the action wheel for selected paths over a target application. Available actions depend on the selection and target.",
+      "command": "omablade wheel --at 1200,430 /path/to/notes.txt",
+      "proof": "The wheel opens with actions resolved for the real terminal target.",
+      "expectations": [
+        "E-26",
+        "E-38"
+      ],
+      "status": "pending-capture",
+      "limitations": "The clip opens the wheel from the CLI; drag-trigger and action dispatch have separate demonstrations."
+    },
+    {
+      "id": "integrations/wheel-configuration",
+      "title": "Customize the drop wheel",
+      "summary": "Customize wheel order, labels, and visibility through the dropWheel member of Omablade's existing settings document. Preserve its other preferences. See the linked configuration reference for the schema.",
+      "command": "",
+      "proof": "The real wheel shows the configured Shell here label and hides Open with.",
+      "expectations": [
+        "E-38"
+      ],
+      "status": "pending-capture",
+      "limitations": "The configuration is applied to the disposable profile; this is not a visual wheel editor."
+    },
+    {
+      "id": "integrations/terminal-panes",
+      "title": "Target terminal panes",
+      "summary": "A supported terminal multiplexer can receive files in a chosen placement. Omablade resolves the live target pane before dispatching.",
+      "command": "omablade drop-run mux-open /path/to/notes.txt --placement right --at 1200,220",
+      "proof": "A real tmux target gains a right-hand pane containing the sample file.",
+      "expectations": [
+        "E-26"
+      ],
+      "status": "pending-capture",
+      "limitations": "This recording covers tmux; it does not qualify every supported terminal or multiplexer."
+    },
+    {
+      "id": "integrations/git-review",
+      "title": "Review changed files with Hunk",
+      "summary": "Use Review for a selected Git path with changes. Omablade launches Hunk with the selected change context.",
+      "command": "omablade drop-run review /path/to/project/README.md --at 1200,220",
+      "proof": "Hunk opens the sample repository's changed file.",
+      "expectations": [
+        "hyprland_desktop"
+      ],
+      "status": "pending-capture",
+      "limitations": "Hunk must be installed. The recording uses a disposable repository."
+    },
+    {
+      "id": "integrations/picker",
+      "title": "Pick files from the CLI",
+      "summary": "Request a file selection from a shell command. Confirm the picker to receive the chosen path; cancelling returns without a selection.",
+      "command": "omablade pick --mode open --root /path/to/project --query notes.txt",
+      "proof": "A picker opened from the media grid displays ordinary files and returns the selected notes.txt path.",
+      "expectations": [
+        "E-46"
+      ],
+      "status": "pending-capture",
+      "limitations": "The media-grid preference remains saved after the picker closes."
+    },
+    {
+      "id": "integrations/shell-widget",
+      "title": "Use shell selection widgets",
+      "summary": "Load the Bash or Zsh integration in your interactive shell. Ctrl+T replaces the current partial word with a selected, shell-quoted path.",
+      "command": "eval \"$(omablade shell bash)\"",
+      "proof": "The Bash widget opens the picker and inserts the chosen file into an unfinished command without executing it.",
+      "expectations": [
+        "shell_integration"
+      ],
+      "status": "pending-capture",
+      "limitations": "This recording covers Bash. Use omablade shell zsh for the Zsh integration."
+    },
+    {
+      "id": "integrations/agent-context",
+      "title": "Expose selection to coding agents",
+      "summary": "Expose the current Omablade selection to a coding agent or another command-line integration.",
+      "command": "omablade agent-context",
+      "proof": "The CLI returns the sample selection in the agent-context response.",
+      "expectations": [
+        "public_cli"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "integrations/autostart",
+      "title": "Register native autostart",
+      "summary": "Opt into the native autostart role to install the login desktop entry. Its stable launcher starts Omablade and restores the saved blade layout. Disable the role to reverse its owned registration.",
+      "command": "omablade native roles enable --role autostart\nomablade native roles status --json",
+      "proof": "After the runtime is drained, GIO launches the installed autostart desktop entry and the real native Files blade returns.",
+      "expectations": [
+        "native_roles"
+      ],
+      "status": "pending-capture",
+      "limitations": "Proves registration and a cold desktop-entry launch. A full logout/login transition was not performed; the user's active desktop remains untouched."
+    },
+    {
+      "id": "integrations/bindings",
+      "title": "Install blade keybindings",
+      "summary": "Opt into the native bindings role to install Omablade's Hyprland include. Super+B opens, closes and refocuses the left blade; Super+Shift+B controls the right.",
+      "command": "omablade native roles enable --role bindings\nomablade native roles status --json",
+      "proof": "Actual Super+B input opens, closes and reopens the installed native blade.",
+      "expectations": [
+        "E-49-native-bindings"
+      ],
+      "status": "pending-capture",
+      "limitations": "Recorded in a separate local compositor using a virtual keyboard. The user's active desktop was not modified."
+    },
+    {
+      "id": "integrations/folder-default",
+      "title": "Open folders with Omablade",
+      "summary": "Enable the folder role when Omablade should handle directory opens through the desktop.",
+      "command": "omablade native roles enable --role folder",
+      "proof": "Opening the sample docs folder through GIO hands it to Omablade, which displays that folder.",
+      "expectations": [
+        "native_open"
+      ],
+      "status": "pending-capture",
+      "limitations": "The capture changes only the disposable profile's folder association."
+    },
+    {
+      "id": "integrations/reveal",
+      "title": "Reveal a file through the desktop",
+      "summary": "Enable the reveal role to serve desktop FileManager1 reveal requests. A request opens the containing folder and selects the requested file.",
+      "command": "omablade native roles enable --role reveal",
+      "proof": "A real org.freedesktop.FileManager1.ShowItems call reveals and selects the requested document in Omablade.",
+      "expectations": [
+        "native_open"
+      ],
+      "status": "pending-capture",
+      "limitations": "The D-Bus service is started explicitly on the disposable session bus; automatic activation is covered separately by the native-role regressions."
+    },
+    {
+      "id": "integrations/portal",
+      "title": "Choose files for applications",
+      "summary": "Enable the chooser role to register Omablade as a FileChooser portal backend. Applications request files through the desktop portal frontend.",
+      "command": "omablade native roles enable --role chooser",
+      "proof": "A client requests a file through the public desktop portal, selects notes.txt in Omablade, and receives that exact file URI.",
+      "expectations": [
+        "E-47"
+      ],
+      "status": "pending-capture",
+      "limitations": "The real portal frontend and Omablade backend run on a disposable session bus. They are started explicitly for this recording; automatic service activation is covered separately by native-role checks."
+    },
+    {
+      "id": "integrations/sftp",
+      "title": "Browse an SFTP location",
+      "summary": "Select a discovered tailnet location and connect with an authorized SSH account. Omablade uses the existing desktop and SSH authorization for the remote listing.",
+      "command": "omablade root sftp://user@omen/usr/share/doc",
+      "proof": "The Files pane opens Omen’s real /usr/share/doc directory over SFTP after the authorized connection is established. The backend lists 230 entries; the pane contains the root plus those entries.",
+      "expectations": [
+        "locations_sftp"
+      ],
+      "status": "pending-capture",
+      "limitations": "Read-only directory browsing on the explicitly named Omen peer using existing SSH authorization. The clip starts with the connection established; connect, refresh and disconnect were verified separately. Remote writes, transfers and other peers are not claimed."
+    },
+    {
+      "id": "integrations/tailnet",
+      "title": "Discover tailnet peers",
+      "summary": "The Drives integration discovers available Tailscale peers. Discovery does not itself connect to a peer or browse its files.",
+      "command": "",
+      "proof": "The backend returns the real session's discovered and online peer counts.",
+      "expectations": [
+        "locations_tailnet"
+      ],
+      "status": "pending-capture",
+      "limitations": "Host names and addresses are omitted from the recording."
+    },
+    {
+      "id": "integrations/extensions",
+      "title": "Add an extension pane",
+      "summary": "Register a trusted native extension under ~/.config/omablade/extensions/ID/manifest.json, rescan modules, then add its pane. See EXTENSIONS.md for the complete host contract.",
+      "command": "omablade rescan-modules\nomablade blade set left demo.omablade-sample/sample",
+      "proof": "The generated sample extension loads as a real Omablade pane.",
+      "expectations": [
+        "E-35",
+        "E-41"
+      ],
+      "status": "pending-capture",
+      "limitations": "Extensions execute local code and should come from a source you trust."
+    },
+    {
+      "id": "integrations/custom-actions",
+      "title": "Run an extension action",
+      "summary": "Extensions can declare actions that receive Omablade's selected paths. Invoke an action from the UI or its public action command.",
+      "command": "omablade action mash2rafi.blade-example/dump /path/to/notes.txt --yes --wait 3",
+      "proof": "The sample action receives the selected path and writes its expected result.",
+      "expectations": [
+        "actions_e2e"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "integrations/gallery",
+      "title": "Browse an extension image gallery",
+      "summary": "An extension can reuse Omablade's shared image gallery. The provider supplies actual items; the host presents the gallery and selection.",
+      "command": "omablade blade set left example.sample-images/sample-images",
+      "proof": "The Samples extension displays generated sample images from its real provider.",
+      "expectations": [
+        "E-37"
+      ],
+      "status": "pending-capture",
+      "limitations": "The library contains synthetic color-card images for demonstration."
+    },
+    {
+      "id": "delivery/native-install",
+      "title": "Install the native app",
+      "summary": "Install a verified native payload through its included installer. The stable launcher points to an owned installation receipt.",
+      "command": "PAYLOAD/tools/native install PAYLOAD",
+      "proof": "Installation succeeds in a disposable home and identifies the active payload.",
+      "expectations": [
+        "E-91"
+      ],
+      "status": "pending-capture",
+      "limitations": "The recording does not replace the working desktop's installation."
+    },
+    {
+      "id": "delivery/plugin-install",
+      "title": "Install as an Omarchy plugin",
+      "summary": "Set Omablade up with one line, or add, update and remove it with omarchy plugin commands like any other plugin.",
+      "command": "curl -fsSL https://raw.githubusercontent.com/MASH2RAFI/omablade/main/tools/plugin-setup | bash",
+      "proof": "The plugin installs, enables and its blades open.",
+      "expectations": [],
+      "status": "pending-capture",
+      "limitations": "The bundled backend is x86-64 only."
+    },
+    {
+      "id": "delivery/package",
+      "title": "Build the Arch package",
+      "summary": "Build an Arch package from an already verified native payload. The build validates the extracted package against its payload inventory.",
+      "command": "packaging/build /path/to/payload /path/to/package-output",
+      "proof": "The built package reports its version, architecture, and dependencies.",
+      "expectations": [
+        "E-92"
+      ],
+      "status": "pending-capture",
+      "limitations": "The actual package build completed outside the short clip; the clip inspects its resulting metadata."
+    },
+    {
+      "id": "delivery/update-rollback",
+      "title": "Update and roll back",
+      "summary": "Installing another verified payload records the previous payload so the owned native installer can roll back.",
+      "command": "PAYLOAD/tools/native rollback\nPAYLOAD/tools/native status",
+      "proof": "The disposable installation switches back to its previously installed payload.",
+      "expectations": [
+        "E-91",
+        "E-95"
+      ],
+      "status": "pending-capture",
+      "limitations": "Both payloads are v0.2.0 review candidates with different source identities."
+    },
+    {
+      "id": "delivery/remove",
+      "title": "Remove a native installation",
+      "summary": "Use the native installer's owned removal command to remove its application files and registrations. Saved personal state is retained.",
+      "command": "PAYLOAD/tools/native remove",
+      "proof": "The disposable installation's stable launcher disappears while its sample personal data remains.",
+      "expectations": [
+        "E-93"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "delivery/safe-shutdown",
+      "title": "Drain before maintenance",
+      "summary": "Drain the native runtime before maintenance. The result reports whether accepted work and state reached a safe stopping point.",
+      "command": "omablade native drain --timeout-ms 5000 --json",
+      "proof": "The disposable runtime reports that it drained and stopped.",
+      "expectations": [
+        "E-94"
+      ],
+      "status": "pending-capture",
+      "limitations": "The capture helper reopens that disposable runtime after recording."
+    },
+    {
+      "id": "delivery/diagnostics",
+      "title": "Check runtime health",
+      "summary": "Use doctor to inspect the native backend, view, and recovery state. A blocked recovery is reported as unhealthy.",
+      "command": "omablade doctor",
+      "proof": "The live disposable runtime reports its actual health and version.",
+      "expectations": [
+        "public_cli"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "delivery/recovery",
+      "title": "Recover interrupted operations",
+      "summary": "Omablade checks recorded in-flight operations so interrupted staged items can be recovered without silently overwriting another file.",
+      "command": "omablade native backend -- recover",
+      "proof": "The real recovery command restores a sample staged file and reports its path.",
+      "expectations": [
+        "E-27"
+      ],
+      "status": "pending-capture",
+      "limitations": "The interruption is represented by a documented fixture; the recording does not claim a process crashed."
+    },
+    {
+      "id": "delivery/release-verification",
+      "title": "Verify release payloads",
+      "summary": "Verify a payload before installation or packaging. Its inventory binds file paths, modes, hashes, version, architecture, and source identity.",
+      "command": "PAYLOAD/tools/native verify PAYLOAD",
+      "proof": "The valid candidate payload passes its actual inventory verification.",
+      "expectations": [
+        "E-90"
+      ],
+      "status": "pending-capture",
+      "limitations": "Tamper and mixed-version refusal paths are covered by the regression gate, not shown in this clip. Checksums are not publisher signatures."
+    },
+    {
+      "id": "panes/activity/retention",
+      "title": "Forget stored agent usage",
+      "summary": "Forget stored usage events before a chosen local date, or clear the usage history. This changes Omablade's usage database, not the original agent transcripts.",
+      "command": "omablade usage forget --before 2026-09-22",
+      "proof": "Events before the chosen cutoff disappear while later sample events remain.",
+      "expectations": [
+        "usage_cli_e2e"
+      ],
+      "status": "pending-capture",
+      "limitations": "The recording uses disposable synthetic activity; forgetting real usage is a deliberate data-removal action."
+    },
+    {
+      "id": "integrations/scaffolding",
+      "title": "Scaffold an extension",
+      "summary": "Generate an extension from the bundled template, then run the generated project's checks before customizing it.",
+      "command": "omablade extension template demo.omablade-sample demo-extension\ncd demo-extension\ntests/run",
+      "proof": "The template generates a sample extension with its manifest and validation files.",
+      "expectations": [
+        "scaffold_e2e"
+      ],
+      "status": "pending-capture",
+      "limitations": "The video shows generation; the full local code gate exercises the generated extension checks."
+    },
+    {
+      "id": "integrations/writing-modules",
+      "title": "Write your own module",
+      "summary": "Create a working module in one command, edit its QML and reload it in place.",
+      "command": "omablade module new hello --add right\nomablade module reload",
+      "proof": "A Hello panel appears and shows an edit after the reload.",
+      "expectations": [
+        "E-35-07",
+        "E-35-08",
+        "E-35-10"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    },
+    {
+      "id": "panes/files/device-actions",
+      "title": "Mount, unmount and eject drives",
+      "summary": "Mount, unmount, or eject an eligible device from Drives. Availability depends on the device and desktop storage services.",
+      "command": "",
+      "proof": "A disposable loop-backed filesystem mounts, unmounts, and ejects, with each real action reporting a change.",
+      "expectations": [
+        "mounts_actions"
+      ],
+      "status": "pending-capture",
+      "limitations": "Only a task-owned disk image is used. No user drive is modified."
+    },
+    {
+      "id": "workspace/custom-keys",
+      "title": "Customize tree keybindings",
+      "summary": "Customize action bindings in Omablade's keybindings document, then reload it. Binding names describe actions such as search.",
+      "command": "omablade native ipc -- mash2rafi.omablade.control reloadKeybindings",
+      "proof": "A temporary F6 binding focuses search and enters a query.",
+      "expectations": [
+        "E-30"
+      ],
+      "status": "pending-capture",
+      "limitations": "The demonstration changes only the capture profile's keymap."
+    },
+    {
+      "id": "panes/network-storage/servers",
+      "title": "Connect to network servers",
+      "summary": "Network Storage lists connected shares, every server on the local network or tailnet that shares something, and servers used before, like the Network page of GNOME Files. Connect to Server mounts an address and remembers it.",
+      "command": "omablade blade set right notes,networkstorage",
+      "proof": "A typed smb:// address connects, appears under Connected with an eject button, and returns under Previous Servers after ejecting.",
+      "expectations": [
+        "E-99"
+      ],
+      "status": "pending-capture",
+      "limitations": "Only SMB shares are found on tailnet devices; other protocols need an address."
+    },
+    {
+      "id": "panes/network-storage/sync",
+      "title": "Keep network folders offline",
+      "summary": "Any folder or file on a connected share can be synced to ~/.sync with live progress, pause, resume and cancel. Un-sync removes only the local copy.",
+      "command": "omablade blade set right notes,networkstorage",
+      "proof": "A shared folder syncs with a progress bar, shows a tick, and un-syncs without touching the share.",
+      "expectations": [
+        "E-99"
+      ],
+      "status": "pending-capture",
+      "limitations": ""
+    }
+  ],
+  "coverage": {
+    "documented": 115,
+    "verified": 0,
+    "pending": [
+      "workspace/blades",
+      "workspace/focus",
+      "workspace/docking",
+      "workspace/resizing",
+      "workspace/sections",
+      "workspace/tabs",
+      "workspace/move-tabs",
+      "workspace/monitors",
+      "workspace/persistence",
+      "workspace/theme",
+      "workspace/hyprland-look",
+      "workspace/bar",
+      "workspace/settings",
+      "panes/files/navigation",
+      "panes/files/folding",
+      "panes/files/selection",
+      "panes/files/watching",
+      "panes/files/location",
+      "panes/files/hidden-files",
+      "panes/files/sorting",
+      "panes/files/columns",
+      "panes/files/density",
+      "panes/files/toolbar",
+      "panes/files/search",
+      "panes/files/search-syntax",
+      "panes/files/deep-search",
+      "panes/files/quick-navigation",
+      "panes/files/favorites",
+      "panes/files/folder-colors",
+      "panes/files/git-status",
+      "panes/files/git-summary",
+      "panes/files/drive-space",
+      "panes/files/drives",
+      "panes/files/media-grid",
+      "panes/files/media-sort",
+      "panes/files/media-size",
+      "panes/files/media-calendar",
+      "panes/files/media-hours",
+      "panes/properties/metadata",
+      "panes/properties/text-preview",
+      "panes/properties/media-preview",
+      "panes/notes/editing",
+      "panes/notes/notebooks",
+      "panes/notes/counts",
+      "panes/skills/inventory",
+      "panes/skills/activity",
+      "panes/skills/day-filter",
+      "panes/skills/management",
+      "panes/memory/inventory",
+      "panes/memory/management",
+      "panes/hooks/inventory",
+      "panes/hooks/management",
+      "panes/mcp/inventory",
+      "panes/mcp/activity",
+      "panes/mcp/management",
+      "panes/branches/branches",
+      "panes/branches/worktrees",
+      "panes/branches/status",
+      "panes/welcome/onboarding",
+      "panes/welcome/catalogue",
+      "panes/welcome/help",
+      "operations/new-file",
+      "operations/new-folder",
+      "operations/rename",
+      "operations/copy-paste",
+      "operations/move",
+      "operations/drag-drop",
+      "operations/conflicts",
+      "operations/trash",
+      "operations/restore",
+      "operations/permanent-delete",
+      "operations/undo-redo",
+      "operations/archive-list",
+      "operations/archive-extract",
+      "operations/archive-create",
+      "operations/permissions",
+      "operations/progress-cancel",
+      "operations/audit",
+      "integrations/open-files",
+      "integrations/editor",
+      "integrations/terminal",
+      "integrations/copy-path",
+      "integrations/drop-wheel",
+      "integrations/wheel-configuration",
+      "integrations/terminal-panes",
+      "integrations/git-review",
+      "integrations/picker",
+      "integrations/shell-widget",
+      "integrations/agent-context",
+      "integrations/autostart",
+      "integrations/bindings",
+      "integrations/folder-default",
+      "integrations/reveal",
+      "integrations/portal",
+      "integrations/sftp",
+      "integrations/tailnet",
+      "integrations/extensions",
+      "integrations/custom-actions",
+      "integrations/gallery",
+      "delivery/native-install",
+      "delivery/plugin-install",
+      "delivery/package",
+      "delivery/update-rollback",
+      "delivery/remove",
+      "delivery/safe-shutdown",
+      "delivery/diagnostics",
+      "delivery/recovery",
+      "delivery/release-verification",
+      "panes/activity/retention",
+      "integrations/scaffolding",
+      "integrations/writing-modules",
+      "panes/files/device-actions",
+      "workspace/custom-keys",
+      "panes/network-storage/servers",
+      "panes/network-storage/sync"
+    ]
+  }
+}
