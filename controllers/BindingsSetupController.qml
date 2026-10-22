@@ -14,7 +14,7 @@ QtObject {
     var config = String(Quickshell.env("XDG_CONFIG_HOME") || "")
     return (config.charAt(0) === "/" ? config : service.home + "/.config") + "/hypr/bindings.lua"
   }
-  readonly property string addedNotice: "Added Omablade keys to Hyprland: Super+B and Super+Shift+B open the blades"
+  readonly property string addedNotice: "Added Omablade keys to Hyprland: Super+Shift+F and Super+Shift+N open the blades"
 
   onDueChanged: if (due) Qt.callLater(setup.run)
   Component.onCompleted: if (due) Qt.callLater(setup.run)

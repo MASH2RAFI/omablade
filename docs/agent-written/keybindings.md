@@ -129,7 +129,7 @@ rebound. Plain `+` and `-` remain the tree density and media tile size keys.
 
 ## Hyprland bindings
 
-The desktop keys that open and focus blades (`Super+B`, `Super+Shift+B`, the
+The desktop keys that open and focus blades (`Super+Shift+F`, `Super+Shift+N`, the
 blade-aware `Super+arrows`, `Super+W`, `Super+T` and the resize keys) come
 from `examples/omablade-bindings.lua`. The `bindings` desktop role installs it:
 it writes `~/.config/hypr/omablade-bindings.lua` with the launcher's absolute,

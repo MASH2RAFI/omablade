@@ -534,43 +534,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "omablade"
-version = "0.3.3"
-dependencies = [
- "base64",
- "blocking",
- "chrono",
- "clap",
- "omablade-output",
- "ignore",
- "image",
- "libc",
- "nucleo",
- "regex",
- "rustix",
- "semver",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "thiserror",
- "toml",
- "unicode-general-category",
- "url",
- "uuid",
- "xattr",
- "zbus",
-]
-
-[[package]]
-name = "omablade-output"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "find-msvc-tools"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1011,6 +974,43 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "omablade"
+version = "0.3.3"
+dependencies = [
+ "base64",
+ "blocking",
+ "chrono",
+ "clap",
+ "ignore",
+ "image",
+ "libc",
+ "nucleo",
+ "omablade-output",
+ "regex",
+ "rustix",
+ "semver",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror",
+ "toml",
+ "unicode-general-category",
+ "url",
+ "uuid",
+ "xattr",
+ "zbus",
+]
+
+[[package]]
+name = "omablade-output"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

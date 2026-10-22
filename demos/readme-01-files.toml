@@ -39,7 +39,7 @@ ms = 1
 
 [[step]]
 kind = "annotate"
-text = "Super+B opens the Omablade blade at the edge of your screen"
+text = "Super+Shift+F opens the Omablade blade at the edge of your screen"
 ms = 4200
 
 [[step]]

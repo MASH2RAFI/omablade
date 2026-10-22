@@ -58,7 +58,7 @@ TestCase {
     compare(requests[1].args.join(" "), "--role bindings --on")
     answer(1, { roles: { bindings: { status: "enabled", error: "" } } })
     compare(fakeService.bindingsSetup, "added")
-    verify(fakeService.operationNotice.indexOf("Super+B") >= 0)
+    verify(fakeService.operationNotice.indexOf("Super+Shift+F") >= 0)
     fakeService.backendReady = false
     fakeService.backendReady = true
     wait(20)

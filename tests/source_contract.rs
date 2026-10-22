@@ -1389,8 +1389,8 @@ fn hover_exit_waits_while_the_action_menu_is_open() {
     assert!(script.contains("parked-focus focusedBlade left"));
     assert!(script.contains("outside-click-closes actionMenuOpen false"));
     let window_focus = text(&root.join("tests/vm/window-click-focus.sh"));
-    assert!(window_focus.contains("key meta_l-b"));
-    assert!(window_focus.contains("key shift-meta_l-b"));
+    assert!(window_focus.contains("key shift-meta_l-f"));
+    assert!(window_focus.contains("key shift-meta_l-n"));
     assert!(window_focus.contains("left-rest-retained"));
     assert!(window_focus.contains("motion-released \"\""));
     assert!(window_focus.contains("right-click-released \"\""));

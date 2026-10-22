@@ -45,7 +45,7 @@ ms = 1200
 
 [[step]]
 kind = "annotate"
-text = "Super+B focuses the left blade"
+text = "Super+Shift+F focuses the left blade"
 ms = 2600
 
 [[step]]
@@ -171,7 +171,7 @@ ms = 1000
 
 [[step]]
 kind = "annotate"
-text = "Super+B again closes the focused blade"
+text = "Super+Shift+F again closes the focused blade"
 ms = 2400
 
 [[step]]

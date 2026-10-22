@@ -30,7 +30,7 @@ case ${1:-} in
     shift
     command=$*
     bindings=/home/omarchy/.config/omarchy/plugins/mash2rafi.omablade/examples/omablade-bindings.lua
-    native_bindings="sed '1i hl.unbind(\"SUPER + B\")' $bindings | sed 's@omarchy-shell mash2rafi.omablade.control@qs -n -p $native/app ipc call mash2rafi.omablade.control@g'"
+    native_bindings="sed '1i hl.unbind(\"SUPER + SHIFT + F\")' $bindings | sed 's@omarchy-shell mash2rafi.omablade.control@qs -n -p $native/app ipc call mash2rafi.omablade.control@g'"
     command=${command//"cat $bindings"/"$native_bindings"}
     trash_query='~/.config/omarchy/plugins/mash2rafi.omablade/omablade _backend trash-list'
     command=${command//"$trash_query"/"$native/app/qualification/trash-list"}

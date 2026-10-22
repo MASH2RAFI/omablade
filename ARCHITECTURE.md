@@ -354,7 +354,7 @@ local function blade(method, fallback)
   return call
 end
 
-o.bind("SUPER + B", "Open or close the left blade", blade("toggleBladeFocus left"))
+o.bind("SUPER + SHIFT + F", "Open or close the left blade", blade("toggleBladeFocus left"))
 o.bind("SUPER + W", "Close window or blade", blade("windowClose", "hl.dsp.window.close()"))
 o.bind("SUPER + LEFT", "Focus left (blade aware)", blade("focusDirection l", 'hl.dsp.focus({ direction = "l" })'))
 ```
@@ -481,8 +481,8 @@ setScrollMarks: settings sheet toggle for Git marks on the scroll ruler; the VM 
 setAutoHideSearch: settings sheet toggle for hiding unfocused search bars; VM section 32 checks visibility and persistence
 focusRight:     host bind (Super+Right)
 focusBladeOn:   host bind helper, focuses a blade on a named screen
-quickNav:       in-app key (Shift+Z); no host bind
-undo:           host bind (Super+Z), also the in-app undo
+quickNav:       host bind (Super+Z), also the in-app key (Shift+Z)
+undo:           in-app undo; no host bind
 releaseInput:   drops whatever holds input (an open drop wheel, a blade focus grab) and says what it released; for an agent or a TTY when the pointer seems trapped
 reloadKeybindings: explicit reread after editing the user keymap; normally handled by its file watcher
 cancelPick:     picker dialog flow, driven by the pick blade itself; `omablade pick` also closes its own picker when its wait ends

@@ -45,16 +45,16 @@ Ids never get reused. When behaviour changes, edit the entry in place.
 
 `tests/vm/expectations/01-blade-lifecycle.sh`
 
-1. **E-01-01** If I press `Super+B` while the left blade is hidden, the left
+1. **E-01-01** If I press `Super+Shift+F` while the left blade is hidden, the left
    blade opens and is ready for keyboard input.
 2. **E-01-02** When I open the left blade, I can see the file tree and file
    properties in the same blade.
-3. **E-01-03** If I press `Super+B` while the left blade is open and focused,
+3. **E-01-03** If I press `Super+Shift+F` while the left blade is open and focused,
    the blade hides completely.
-4. **E-01-04** If I have the left blade open but not focused, pressing `Super+B`
+4. **E-01-04** If I have the left blade open but not focused, pressing `Super+Shift+F`
    hides it: one press closes an open blade wherever my focus is, and one
    press opens and focuses a hidden one.
-5. **E-01-05** If I press `Super+Shift+B`, the right blade opens and takes focus
+5. **E-01-05** If I press `Super+Shift+N`, the right blade opens and takes focus
    without hiding the left blade.
 6. **E-01-06** After I focus a blade, my keyboard input controls the blade and
    does not type into the application behind it.
@@ -70,7 +70,7 @@ Ids never get reused. When behaviour changes, edit the entry in place.
     blade; moving focus left returns it to the left blade.
 11. **E-01-11** If I click the Up button while the blade has keyboard focus, it
     works on the first click without needing a preliminary click.
-12. **E-01-12** If I press `Super+B` while the left blade is focused and an
+12. **E-01-12** If I press `Super+Shift+F` while the left blade is focused and an
     application window is open, the blade closes and that window gets my
     keyboard focus again.
 13. **E-01-13** If I press `Escape` in the properties pane, in a note, or in an
@@ -81,8 +81,8 @@ Ids never get reused. When behaviour changes, edit the entry in place.
     Quickshell crash report appears. The Drives list still heads each group
     (Tailnet, External, System, …) once, above its first drive.
 15. **E-01-15** After `omarchy plugin add … --enable`, the first time Omablade
-    starts it adds its Hyprland keys without me pasting anything: `Super+B`
-    and `Super+Shift+B` open the blades, the Files pane says it added them, and
+    starts it adds its Hyprland keys without me pasting anything: `Super+Shift+F`
+    and `Super+Shift+N` open the blades, the Files pane says it added them, and
     `~/.config/hypr/bindings.lua` gains one `dofile` line marked
     `-- omablade desktop role`. If my bindings were written for FileBlade
     (they call `data-goblin.fileblade.control`), they keep their keys and now
@@ -92,10 +92,10 @@ Ids never get reused. When behaviour changes, edit the entry in place.
     Hyprland bindings switch in a plugin too; turning it off restores my file
     exactly and Omablade never re-adds the keys on its own.
 16. **E-01-16** On a fresh install the left blade opens with the Trash cleanup
-    question. While it waits for my answer, `Super+B` moves my keyboard to the
+    question. While it waits for my answer, `Super+Shift+F` moves my keyboard to the
     question instead of doing nothing, so I can answer with the arrow keys and
-    `Enter`. Pressing `Super+B` again while I am on the question tells me the
-    blade stays open until I answer; `Super+Shift+B` and the other Omablade
+    `Enter`. Pressing `Super+Shift+F` again while I am on the question tells me the
+    blade stays open until I answer; `Super+Shift+N` and the other Omablade
     keys work as usual the whole time.
 
 ## 2. The tree draws what is on disk
@@ -2181,10 +2181,11 @@ never assumed.
 This file was written by an agent.
 
 - **E-40-19** Native Omablade's desktop bindings reach the standalone app through its stable
-  launcher. Super+B opens or focuses the left blade, Super+Shift+B the right,
-  and Super+Z undoes the last file operation without opening quick navigation,
+  launcher. Super+Shift+F opens or focuses the left blade, Super+Shift+N the right,
+  and Super+Z opens quick navigation in the file tree,
   without requiring a legacy shell host.
-  Repeated binding installation does not leave duplicate Super+B actions.
+  Repeated binding installation does not leave duplicate Super+Shift+F actions. Super+B and Super+Shift+B are
+  left to Omarchy.
 - **E-40-20** A generated extension recognizes a running native Omablade without an old
   shell-host entry in Omarchy's catalogue. If installed but stopped, it asks me to
   start Omablade; it does not claim Omablade is missing or restart Omarchy.

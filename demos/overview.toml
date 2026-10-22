@@ -86,7 +86,7 @@ ms = 1500
 
 [[step]]
 kind = "annotate"
-text = "Super+B and Super+Shift+B open the blades"
+text = "Super+Shift+F and Super+Shift+N open the blades"
 ms = 4000
 
 [[step]]
@@ -606,7 +606,7 @@ ms = 1400
 
 [[step]]
 kind = "annotate"
-text = "Super+B closes the blade you are in"
+text = "Super+Shift+F closes the blade you are in"
 ms = 3800
 
 [[step]]

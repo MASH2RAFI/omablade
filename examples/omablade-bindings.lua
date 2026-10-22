@@ -4,10 +4,10 @@ local function omablade(method, fallback)
   return call
 end
 
-hl.unbind("SUPER + B")
-o.bind("SUPER + B", "Open or close the left blade", omablade("toggleBladeFocus left"))
-hl.unbind("SUPER + SHIFT + B")
-o.bind("SUPER + SHIFT + B", "Open or close the right blade", omablade("toggleBladeFocus right"))
+hl.unbind("SUPER + SHIFT + F")
+o.bind("SUPER + SHIFT + F", "Open or close the left blade", omablade("toggleBladeFocus left"))
+hl.unbind("SUPER + SHIFT + N")
+o.bind("SUPER + SHIFT + N", "Open or close the right blade", omablade("toggleBladeFocus right"))
 
 for _, direction in ipairs({ { "LEFT", "l" }, { "RIGHT", "r" }, { "UP", "u" }, { "DOWN", "d" } }) do
   hl.unbind("SUPER + " .. direction[1])
@@ -47,4 +47,5 @@ hl.bind("SUPER + mouse:273", hl.dsp.global("omablade:resize-blade"), { non_consu
 hl.bind("SUPER + mouse:273", hl.dsp.global("omablade:resize-blade-end"), { release = true, non_consuming = true })
 hl.bind("mouse:273", hl.dsp.global("omablade:resize-blade-end"), { release = true, non_consuming = true })
 
-o.bind("SUPER + Z", "Undo the last Omablade file operation", omablade("undo false false"))
+hl.unbind("SUPER + Z")
+o.bind("SUPER + Z", "File tree quick navigation", omablade("quickNav"))

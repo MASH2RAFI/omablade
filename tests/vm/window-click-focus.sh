@@ -36,10 +36,10 @@ arm_sink() {
 }
 
 close_blades
-echo "== Super+B: a resting pointer cannot steal keyboard focus"
+echo "== Super+Shift+F: a resting pointer cannot steal keyboard focus"
 arm_sink "$FIRST_X" "$FIRST_SINK"
 expect_value left-before "$FIRST_TITLE" "$(active_title)"
-"$OVM" key meta_l-b; sleep 1
+"$OVM" key shift-meta_l-f; sleep 1
 expect_value left-focused left "$(field focusedBlade)"
 "$OVM" key j; sleep 0.3
 expect_value left-key-captured 0 "$(sink_size "$FIRST_SINK")"
@@ -54,10 +54,10 @@ expect_value motion-released "" "$(field focusedBlade)"
 expect_value motion-key-delivered 1 "$(sink_size "$FIRST_SINK")"
 
 close_blades
-echo "== Super+Shift+B: an outside click yields right-blade focus"
+echo "== Super+Shift+N: an outside click yields right-blade focus"
 arm_sink "$SECOND_X" "$SECOND_SINK"
 expect_value right-before "$SECOND_TITLE" "$(active_title)"
-"$OVM" key shift-meta_l-b; sleep 1
+"$OVM" key shift-meta_l-n; sleep 1
 expect_value right-focused right "$(field focusedBlade)"
 "$OVM" key j; sleep 0.3
 expect_value right-key-captured 0 "$(sink_size "$SECOND_SINK")"
@@ -70,9 +70,9 @@ expect_value right-click-key-delivered 1 "$(sink_size "$SECOND_SINK")"
 close_blades
 echo "== keyboard focus can switch blades while the pointer remains still"
 "$OVM" mouse click "$FIRST_X" "$WINDOW_Y"; sleep 0.4
-"$OVM" key meta_l-b; sleep 1
+"$OVM" key shift-meta_l-f; sleep 1
 expect_value switch-left left "$(field focusedBlade)"
-"$OVM" key shift-meta_l-b; sleep 1
+"$OVM" key shift-meta_l-n; sleep 1
 expect_value switch-right right "$(field focusedBlade)"
 "$OVM" key h; sleep 0.3
 expect_value switch-first-sink-unchanged 1 "$(sink_size "$FIRST_SINK")"

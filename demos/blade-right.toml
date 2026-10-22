@@ -42,7 +42,7 @@ ms = 1200
 
 [[step]]
 kind = "annotate"
-text = "Super+Shift+B focuses the right blade"
+text = "Super+Shift+N focuses the right blade"
 ms = 2600
 
 [[step]]
@@ -90,7 +90,7 @@ settle_ms = 1200
 
 [[step]]
 kind = "annotate"
-text = "Super+Shift+B again closes it"
+text = "Super+Shift+N again closes it"
 ms = 2200
 
 [[step]]

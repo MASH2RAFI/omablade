@@ -51,7 +51,7 @@ ms = 1400
 
 [[step]]
 kind = "annotate"
-text = "Super+Shift+B opens the right blade. Put whatever you want in the sidebars"
+text = "Super+Shift+N opens the right blade. Put whatever you want in the sidebars"
 ms = 4000
 
 [[step]]

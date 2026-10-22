@@ -96,4 +96,4 @@ fi
 
 step "Done"
 ((dry)) && say "    dry run: nothing was changed"
-say "    open a blade with Super+B (or your own binding), or run: omablade --help"
+say "    open a blade with Super+Shift+F (or your own binding), or run: omablade --help"

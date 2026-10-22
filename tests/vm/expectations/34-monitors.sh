@@ -147,7 +147,7 @@ baseline_zones=$(zones)
 baseline_layout=$(layout_content)
 ctl setMonitorMode active ""
 focus_output "$primary"
-"$OVM" key meta_l-b
+"$OVM" key shift-meta_l-f
 await_shape E-34-01 "Active opens left only on its invocation output" '[1,0,0,0]'
 equal E-34-01 "left records its invocation output" "$(owner left)" "$primary"
 equal E-34-01 "invoked blade receives focus" "$(field focusedBlade)" left
@@ -160,8 +160,8 @@ equal E-34-01 "only A reserves additional left space" \
 capture active-a-focus-b
 
 for edge in left right; do
-  if [[ $edge == left ]]; then chord=meta_l-b; a_shape='[1,0,0,0]'; b_shape='[0,0,1,0]'
-  else chord=shift-meta_l-b; a_shape='[0,1,0,0]'; b_shape='[0,0,0,1]'; fi
+  if [[ $edge == left ]]; then chord=shift-meta_l-f; a_shape='[1,0,0,0]'; b_shape='[0,0,1,0]'
+  else chord=shift-meta_l-n; a_shape='[0,1,0,0]'; b_shape='[0,0,0,1]'; fi
   close_edges
   focus_output "$primary"
   "$OVM" key "$chord"
@@ -179,9 +179,9 @@ done
 
 close_edges
 focus_output "$primary"
-"$OVM" key meta_l-b
+"$OVM" key shift-meta_l-f
 focus_output "$secondary"
-"$OVM" key shift-meta_l-b
+"$OVM" key shift-meta_l-n
 await_shape E-34-03 "edges retain separate invocation outputs" '[1,0,0,1]'
 equal E-34-03 "left remains anchored on A" "$(owner left)" "$primary"
 equal E-34-03 "right remains anchored on B" "$(owner right)" "$secondary"
@@ -200,10 +200,10 @@ await_shape E-34-03 "reopening all records A without a focus change afterward" '
 close_edges
 equal E-34-04 "a detected output can be locked" "$(reply setMonitorMode locked "$secondary")" locked
 focus_output "$primary"
-"$OVM" key meta_l-b
+"$OVM" key shift-meta_l-f
 await_shape E-34-04 "locked left opens on B when invoked from A" '[0,0,1,0]'
 input_reaches E-34-04 "$primary" a
-"$OVM" key shift-meta_l-b
+"$OVM" key shift-meta_l-n
 await_shape E-34-04 "locked right also opens on B" '[0,0,1,1]'
 equal E-34-04 "an unknown lock is rejected" "$(reply setMonitorMode locked OMABLADE-MISSING)" unknown-monitor
 equal E-34-04 "invalid lock preserves the chosen output" "$(field monitorLock)" "$secondary"
@@ -222,12 +222,12 @@ ctl setMonitorMode active ""
 focus_output "$primary"
 saved_width=$(field sidebarWidth)
 ctl setSidebarWidth 1300
-"$OVM" key meta_l-b
+"$OVM" key shift-meta_l-f
 await_shape E-21-10a "wide blade opens on the large output" '[1,0,0,0]'
 equal E-21-10a "large output preserves the chosen width" "$(field sidebarWidth)" 1300
 close_edges
 focus_output "$secondary"
-"$OVM" key meta_l-b
+"$OVM" key shift-meta_l-f
 await_shape E-21-10a "wide blade reopens on the smaller output" '[0,0,1,0]'
 equal E-21-10a "rendering on a smaller output preserves stored width" "$(field sidebarWidth)" 1300
 equal E-21-10a "reserved width respects the smaller output limit" \
@@ -240,13 +240,13 @@ ctl setSidebarWidth "$saved_width"
 equal E-34-05 "legacy Primary maps to locked" "$(reply setMonitorMode primary "")" locked
 equal E-34-05 "legacy Primary locks the first output" "$(field monitorLock)" "$primary"
 focus_output "$secondary"
-"$OVM" key meta_l-b
+"$OVM" key shift-meta_l-f
 await_shape E-34-05 "Primary lock remains on A when invoked on B" '[1,0,0,0]'
 
 close_edges
 ctl setMonitorMode locked "$secondary"
 focus_output "$primary"
-"$OVM" key meta_l-b
+"$OVM" key shift-meta_l-f
 await_shape E-34-06 "locked blade is visible before unplug" '[0,0,1,0]'
 remove_output
 await_shape E-34-06 "unplug never migrates a locked blade to A" '[0,0,0,0]'
@@ -260,7 +260,7 @@ equal E-34-06 "reconnect preserves the lock" "$(field monitorLock)" "$secondary"
 close_edges
 ctl setMonitorMode active ""
 focus_output "$secondary"
-"$OVM" key meta_l-b
+"$OVM" key shift-meta_l-f
 await_shape E-34-07 "Active records B before unplug" '[0,0,1,0]'
 remove_output
 await_shape E-34-07 "unplug does not migrate an Active blade" '[0,0,0,0]'
@@ -268,7 +268,7 @@ equal E-34-07 "Active retains its unavailable owner until closed" "$(owner left)
 focus_output "$primary"
 equal E-34-07 "first press closes the unavailable edge" "$(reply toggleBladeFocus left)" closed
 equal E-34-07 "closing clears the unavailable owner" "$(owner left)" ""
-"$OVM" key meta_l-b
+"$OVM" key shift-meta_l-f
 await_shape E-34-07 "reopening explicitly selects A" '[1,0,0,0]'
 create_output
 await_shape E-34-07 "returning B does not move the reopened blade" '[1,0,0,0]'

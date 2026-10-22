@@ -29,24 +29,22 @@ for attempt in 1 2; do
   result=$(guest "$launcher native roles enable --role bindings --json")
   expect_true E-40-19 "binding installation succeeds on attempt $attempt" "[[ \$(jq -r .status <<<\"\$result\") == complete || \$(jq -r .status <<<\"\$result\") == already_on ]]"
 done
-expect_true E-40-19 "Super+B has one registered action" "[[ \$(guest 'hyprctl -j binds' | jq '[.[] | select(.key == \"B\" and .modmask == 64 and .release == false)] | length') == 1 ]]"
+expect_true E-40-19 "Super+Shift+F has one registered action" "[[ \$(guest 'hyprctl -j binds' | jq '[.[] | select(.key == \"F\" and .modmask == 65 and .release == false)] | length') == 1 ]]"
 expect_true E-40-19 "Hyprland accepts the bindings" "[[ -z \$(guest 'hyprctl configerrors') ]]"
 ctl closeBlade left
 ctl closeBlade right
 sleep 1
-"$OVM" key meta_l-b
+"$OVM" key shift-meta_l-f
 sleep 1
-expect E-40-19 "Super+B opens and focuses the left blade" focusedBlade left
-"$OVM" key shift-meta_l-b
+expect E-40-19 "Super+Shift+F opens and focuses the left blade" focusedBlade left
+"$OVM" key shift-meta_l-n
 sleep 1
-expect E-40-19 "Super+Shift+B opens and focuses the right blade" focusedBlade right
-ctl createEntry undo-probe.txt false "$fixture"
-sleep 1
-expect_true E-40-19 "the probe file exists before undo" "guest 'test -e $(printf '%q' "$fixture")/undo-probe.txt'"
+expect E-40-19 "Super+Shift+N opens and focuses the right blade" focusedBlade right
 "$OVM" key meta_l-z
 sleep 1
-expect_true E-40-19 "Super+Z undoes the file creation" "! guest 'test -e $(printf '%q' "$fixture")/undo-probe.txt'"
-expect E-40-19 "Super+Z does not open quick navigation" quickNavActive false
+expect E-40-19 "Super+Z opens quick navigation" quickNavActive true
+"$OVM" key esc
+sleep 1
 guest "$launcher extension template acme.omablade-audit $(printf '%q' "$fixture/extension") --author Audit" >/dev/null
 result=$(guest "python3 $(printf '%q' "$fixture/extension/bin/omablade-host-status")")
 expect_true E-40-20 "a generated extension recognizes the native host" "[[ \$(jq -r .state <<<\"\$result\") == ready ]]"

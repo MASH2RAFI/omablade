@@ -1123,9 +1123,9 @@
     {
       "id": "integrations/bindings",
       "title": "Install blade keybindings",
-      "summary": "Opt into the native bindings role to install Omablade's Hyprland include. Super+B opens, closes and refocuses the left blade; Super+Shift+B controls the right.",
+      "summary": "Opt into the native bindings role to install Omablade's Hyprland include. Super+Shift+F opens, closes and refocuses the left blade; Super+Shift+N controls the right.",
       "command": "omablade native roles enable --role bindings\nomablade native roles status --json",
-      "proof": "Actual Super+B input opens, closes and reopens the installed native blade.",
+      "proof": "Actual Super+Shift+F input opens, closes and reopens the installed native blade.",
       "expectations": [
         "E-49-native-bindings"
       ],
