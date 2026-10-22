@@ -56,6 +56,11 @@ QtObject {
       && edges.indexOf("left") >= 0 && bladeHost.isOpen("left")
   }
 
+  function focusPendingQuestion() {
+    if (bladeHost.focusedEdge === "left") return "consent-pending"
+    return bladeHost.focusBlade("left", bladeHost.preferredScreen("left"), -1, "", true) ? "focused" : "no-screen"
+  }
+
   function asCli(run) {
     service.operationActor = "cli"
     try { return run() } finally { service.operationActor = "ui" }
@@ -768,13 +773,13 @@ QtObject {
 
   function toggleBladeFocus(edge: string): string {
     if (!bladeHost.layoutSettled) return "not-ready"
-    if (leftCloseBlocked([bladeHost.normalizeEdge(edge)])) return "consent-pending"
+    if (leftCloseBlocked([bladeHost.normalizeEdge(edge)])) return root.focusPendingQuestion()
     return bladeHost.toggleBladeFocus(edge, bladeHost.preferredScreen(edge))
   }
 
   function focusLeft(): string {
     if (!bladeHost.layoutSettled) return "not-ready"
-    if (leftCloseBlocked(["left"])) return "consent-pending"
+    if (leftCloseBlocked(["left"])) return root.focusPendingQuestion()
     return bladeHost.toggleBladeFocus("left", bladeHost.preferredScreen("left"))
   }
 

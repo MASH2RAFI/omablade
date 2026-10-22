@@ -91,6 +91,12 @@ Ids never get reused. When behaviour changes, edit the entry in place.
     Omablade, nothing is changed. Settings → Desktop integration shows a
     Hyprland bindings switch in a plugin too; turning it off restores my file
     exactly and Omablade never re-adds the keys on its own.
+16. **E-01-16** On a fresh install the left blade opens with the Trash cleanup
+    question. While it waits for my answer, `Super+B` moves my keyboard to the
+    question instead of doing nothing, so I can answer with the arrow keys and
+    `Enter`. Pressing `Super+B` again while I am on the question tells me the
+    blade stays open until I answer; `Super+Shift+B` and the other Omablade
+    keys work as usual the whole time.
 
 ## 2. The tree draws what is on disk
 
