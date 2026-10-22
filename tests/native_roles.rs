@@ -152,7 +152,8 @@ fn expected_files(home: &Home, role: &str) -> Vec<(String, String)> {
             ("config/xdg-desktop-portal/portals.conf".into(), format!("{PORTALS}org.freedesktop.impl.portal.FileChooser=omablade\n")),
         ],
         "bindings" => vec![
-            ("config/hypr/omablade-bindings.lua".into(), fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/omablade-bindings.lua")).unwrap()),
+            ("config/hypr/omablade-bindings.lua".into(), fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/omablade-bindings.lua")).unwrap()
+                .replace("timeout 0.4s omablade control ", &format!("timeout 0.4s {} control ", format!("'{}'", home.launcher().replace('\'', "'\\''")).replace('\\', "\\\\").replace('"', "\\\"")))),
             ("config/hypr/bindings.lua".into(), format!("{BINDINGS}dofile(os.getenv(\"HOME\") .. \"/.config/hypr/omablade-bindings.lua\") -- omablade desktop role\n")),
         ],
         "autostart" => vec![(

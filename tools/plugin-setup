@@ -8,8 +8,6 @@ plugins="$HOME/.config/omarchy/plugins"
 plugin="$plugins/$id"
 bin_dir="$HOME/.local/bin"
 bindings="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/bindings.lua"
-begin_mark="-- >>> omablade bindings >>>"
-end_mark="-- <<< omablade bindings <<<"
 
 dry=0 add_bindings=1 force_bindings=0 keep_legacy=0
 usage() {
@@ -82,32 +80,13 @@ fi
 
 if ((add_bindings)); then
   step "Keybindings"
-  source_file="$plugin/examples/omablade-bindings.lua"
   if [[ ! -f $bindings ]]; then
-    say "    $bindings not found; paste $source_file into your Hyprland bindings yourself"
-  elif ((dry)) && [[ ! -f $source_file ]]; then
-    say "    would add $source_file to $bindings"
-  elif [[ ! -f $source_file ]]; then
-    fail "$source_file is missing from the plugin"
-  elif grep -qF -- "$begin_mark" "$bindings"; then
-    say "    refreshing the Omablade block in $bindings"
-    if ((!dry)); then
-      cp -p "$bindings" "$bindings.bak-omablade-$(date +%Y%m%d%H%M%S)"
-      awk -v begin="$begin_mark" -v end="$end_mark" -v src="$source_file" '
-        $0 == begin { print; while ((getline line < src) > 0) print line; skip = 1; next }
-        $0 == end { skip = 0 }
-        !skip { print }
-      ' "$bindings" > "$bindings.omablade-new" && mv -f "$bindings.omablade-new" "$bindings"
-    fi
-  elif ((!force_bindings)) && grep -qE -- 'omablade control|mash2rafi\.omablade\.control' "$bindings"; then
+    say "    $bindings not found; turn on Settings → Desktop integration → Hyprland bindings once it exists"
+  elif ((!force_bindings)) && grep -qiE -- 'omablade|fileblade' "$bindings"; then
     say "    $bindings already calls Omablade; keeping your bindings (use --force-bindings to add the defaults)"
   else
-    say "    adding the Omablade block to $bindings (a backup is kept next to it)"
-    if ((!dry)); then
-      cp -p "$bindings" "$bindings.bak-omablade-$(date +%Y%m%d%H%M%S)"
-      { printf '\n%s\n' "$begin_mark"; cat "$source_file"; printf '%s\n' "$end_mark"; } >> "$bindings"
-      command -v hyprctl >/dev/null 2>&1 && hyprctl reload >/dev/null 2>&1 || true
-    fi
+    say "    adding $(dirname -- "$bindings")/omablade-bindings.lua through Omablade's bindings role (undo it in Settings → Desktop integration)"
+    run "$plugin/omablade" _backend roles-set --role bindings --on
   fi
 fi
 

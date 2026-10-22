@@ -4,12 +4,25 @@ use std::time::Duration;
 
 const SNIPPET: &str = include_str!("../../../examples/omablade-bindings.lua");
 
-pub fn plan(config: &Path) -> Vec<Planned> {
+fn command(launcher: &Path) -> String {
+    let path = launcher.to_string_lossy();
+    if path.chars().any(char::is_control) {
+        return "omablade".to_string();
+    }
+    let quoted = format!("'{}'", path.replace('\'', "'\\''"));
+    quoted.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+pub fn snippet(launcher: &Path) -> String {
+    SNIPPET.replace(
+        "timeout 0.4s omablade control ",
+        &format!("timeout 0.4s {} control ", command(launcher)),
+    )
+}
+
+pub fn plan(launcher: &Path, config: &Path) -> Vec<Planned> {
     vec![
-        Planned::whole(
-            config.join("hypr/omablade-bindings.lua"),
-            SNIPPET.to_string(),
-        ),
+        Planned::whole(config.join("hypr/omablade-bindings.lua"), snippet(launcher)),
         Planned::marker(
             config.join("hypr/bindings.lua"),
             format!(

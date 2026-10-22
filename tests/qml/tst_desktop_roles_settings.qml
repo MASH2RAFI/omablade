@@ -34,6 +34,7 @@ TestCase {
   }
 
   function init() {
+    mockHost.nativeApp = true
     calls = []
     statusDocument = status(["reveal"])
     setDocument = setResult("folder", "enabled")
@@ -103,14 +104,23 @@ TestCase {
     compare(detail(section, "autostart"), "Backend request failed")
   }
 
-  function test_section_is_absent_when_not_native() {
+  function test_a_plugin_shows_only_the_bindings_role() {
     mockHost.nativeApp = false
+    statusDocument = status([])
+    setDocument = setResult("bindings", "enabled")
     var section = createTemporaryObject(component, this)
     verify(!section.nativeApp)
-    verify(!section.visible)
-    compare(calls.length, 0)
-    row(section, "folder").toggled()
-    compare(calls.length, 0)
+    compare(section.shownRows.length, 1)
+    compare(calls[0].command, "roles-status")
+    verify(!row(section, "folder"), "native-only roles stay hidden in a plugin")
+    verify(!row(section, "autostart"))
+    compare(row(section, "bindings").label, "Hyprland bindings")
+    verify(section.keywords.indexOf("bindings") >= 0)
+    verify(section.keywords.indexOf("autostart") < 0)
+    row(section, "bindings").toggled()
+    compare(calls[1].command, "roles-set")
+    compare(calls[1].role, "bindings")
+    compare(calls[1].on, true)
     mockHost.nativeApp = true
   }
 }

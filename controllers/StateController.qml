@@ -36,6 +36,7 @@ Item {
   property alias showHidden: persisted.showHidden
   property alias welcomeState: persisted.welcomeState
   property alias welcomeVersion: persisted.welcomeVersion
+  property alias bindingsSetup: persisted.bindingsSetup
   property alias searchCaseSensitive: persisted.searchCaseSensitive
   property alias searchRegex: persisted.searchRegex
   property alias searchTreeLayout: persisted.searchTreeLayout
@@ -78,6 +79,7 @@ Item {
     property bool showHidden: true
     property string welcomeState: ""
     property string welcomeVersion: ""
+    property string bindingsSetup: ""
     property bool searchCaseSensitive: false
     property bool searchRegex: false
     property bool searchTreeLayout: false
@@ -638,6 +640,7 @@ Item {
     showHidden = service.boolValue(state.showHidden, base.showHidden)
     welcomeState = typeof state.welcomeState === "string" && ["dismissed", "installed"].indexOf(state.welcomeState) >= 0 ? state.welcomeState : ""
     welcomeVersion = typeof state.welcomeVersion === "string" ? service.boundedVersion(state.welcomeVersion) : ""
+    bindingsSetup = ["added", "kept", "skipped", "failed"].indexOf(state.bindingsSetup) >= 0 ? state.bindingsSetup : ""
     searchCaseSensitive = service.boolValue(state.searchCaseSensitive, false)
     searchRegex = service.boolValue(state.searchRegex, false)
     searchTreeLayout = service.boolValue(state.searchTreeLayout, false)
@@ -708,6 +711,7 @@ Item {
       showHidden: showHidden,
       welcomeState: welcomeState,
       welcomeVersion: welcomeVersion,
+      bindingsSetup: bindingsSetup,
       searchCaseSensitive: searchCaseSensitive,
       searchRegex: searchRegex,
       searchTreeLayout: searchTreeLayout,
@@ -767,6 +771,14 @@ Item {
     welcomeVersion = next === "" ? "" : nextVersion
     save()
     return welcomeState
+  }
+
+  function setBindingsSetup(value) {
+    var next = String(value || "")
+    if (["", "added", "kept", "skipped", "failed"].indexOf(next) < 0 || next === bindingsSetup) return bindingsSetup
+    bindingsSetup = next
+    save()
+    return bindingsSetup
   }
 
   function save() {

@@ -38,9 +38,36 @@ impl Outcome {
     }
 }
 
+fn plugin_launcher(app_root: &Path) -> Option<PathBuf> {
+    let launcher = app_root.join("omablade");
+    let in_plugins = app_root
+        .parent()
+        .is_some_and(|parent| parent.ends_with("omarchy/plugins"));
+    (in_plugins && launcher.is_file()).then_some(launcher)
+}
+
+fn link_plugin_launcher(app_root: &Path, local: &Path) {
+    let Some(launcher) = plugin_launcher(app_root) else {
+        return;
+    };
+    if std::fs::symlink_metadata(local).is_ok() {
+        return;
+    }
+    if let Some(parent) = local.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let _ = std::os::unix::fs::symlink(launcher, local);
+}
+
 pub fn stable_launcher() -> AppResult<PathBuf> {
     let app_root = std::fs::canonicalize(crate::paths::app_root()?)?;
     let local = crate::paths::xdg_home("HOME", "~").join(".local/bin/omablade");
+    link_plugin_launcher(&app_root, &local);
+    if let Some(launcher) = plugin_launcher(&app_root)
+        && std::fs::canonicalize(&local).ok() == std::fs::canonicalize(&launcher).ok()
+    {
+        return Ok(local);
+    }
     let installed = std::fs::canonicalize(&local)
         .ok()
         .and_then(|launcher| launcher.parent().map(Path::to_path_buf))

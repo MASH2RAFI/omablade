@@ -80,6 +80,14 @@ Ids never get reused. When behaviour changes, edit the entry in place.
     the old shell cleanly: one bar and one copy of each blade come back, and no
     Quickshell crash report appears. The Drives list still heads each group
     (Tailnet, External, System, …) once, above its first drive.
+15. **E-01-15** After `omarchy plugin add … --enable`, the first time Omablade
+    starts it adds its Hyprland keys without me pasting anything: `Super+B`
+    and `Super+Shift+B` open the blades, the Files pane says it added them, and
+    `~/.config/hypr/bindings.lua` gains one `dofile` line marked
+    `-- omablade desktop role`. If my bindings already mention Omablade or
+    FileBlade, nothing is changed. Settings → Desktop integration shows a
+    Hyprland bindings switch in a plugin too; turning it off restores my file
+    exactly and Omablade never re-adds the keys on its own.
 
 ## 2. The tree draws what is on disk
 

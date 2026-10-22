@@ -896,12 +896,12 @@ Item {
         Fold {
           key: "desktop"
           title: "Desktop integration"
-          summary: roles.enabledCount + " of " + roles.rows.length + " on"
+          summary: roles.enabledCount + " of " + roles.shownRows.length + " on"
           shown: desktop.shown
 
           Column {
             id: desktop
-            readonly property bool shown: roles.nativeApp && root.matches(roles.keywords)
+            readonly property bool shown: root.matches(roles.keywords)
             width: parent.width
             spacing: Style.space(5)
             visible: shown

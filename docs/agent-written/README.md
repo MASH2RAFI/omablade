@@ -16,7 +16,7 @@ is maintained separately.
   shared services and trust boundaries
 - [Architecture](../../ARCHITECTURE.md): how the whole application is split up
   and how data moves through it
-- [Keybindings](keybindings.md): user configuration for pane navigation,
+- [Keybindings](keybindings.md): user configuration for pane navigation and the Hyprland blade keys,
   folding, search and help
 - [Git status](git-status.md): status markers and repository summary preferences
 - [Agent usage history](agent-usage.md): how the Skills and MCP blades record

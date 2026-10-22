@@ -126,3 +126,24 @@ This rereads the keymap without restarting Omablade.
 The blade surface handles them after every pane, so they work from any
 focused control; they are not part of the user keymap file and cannot be
 rebound. Plain `+` and `-` remain the tree density and media tile size keys.
+
+## Hyprland bindings
+
+The desktop keys that open and focus blades (`Super+B`, `Super+Shift+B`, the
+blade-aware `Super+arrows`, `Super+W`, `Super+T` and the resize keys) come
+from `examples/omablade-bindings.lua`. The `bindings` desktop role installs it:
+it writes `~/.config/hypr/omablade-bindings.lua` with the launcher's absolute,
+quoted path, adds one `dofile(...) -- omablade desktop role` line to
+`~/.config/hypr/bindings.lua`, reloads Hyprland, and keeps a receipt so turning
+it off restores both files byte for byte.
+
+A plugin install turns the role on by itself the first time it starts, unless
+`bindings.lua` is missing or already mentions Omablade or FileBlade (your own
+bindings win). It records that decision in `state.json` as `bindingsSetup`
+(`added`, `kept`, `skipped` or `failed`) and never asks again, so switching the
+keys off in Settings → Desktop integration → Hyprland bindings stays off. For
+a plugin the role links `~/.local/bin/omablade` to the plugin's launcher when
+that command does not exist yet; an existing command is never replaced, and a
+source checkout outside `~/.config/omarchy/plugins/` is never linked.
+`tools/plugin-setup` uses the same role.
+

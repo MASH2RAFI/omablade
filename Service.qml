@@ -109,6 +109,7 @@ Item {
   readonly property bool agentManagementEnabled: preferencesController.agentManagement
   readonly property alias keybindings: keybindings
   WelcomeController { id: welcomeController; service: service }
+  BindingsSetupController { id: bindingsSetupController; service: service }
   readonly property alias welcome: welcomeController
   readonly property bool welcomePending: welcomeController.pending
 
@@ -160,6 +161,8 @@ Item {
   property alias showHidden: stateController.showHidden
   property alias welcomeState: stateController.welcomeState
   property alias welcomeVersion: stateController.welcomeVersion
+  property alias bindingsSetup: stateController.bindingsSetup
+  function setBindingsSetup(value) { return stateController.setBindingsSetup(value) }
   function setWelcomeState(value, version) { return stateController.setWelcomeState(value, version) }
   property alias searchCaseSensitive: stateController.searchCaseSensitive
   property alias searchRegex: stateController.searchRegex

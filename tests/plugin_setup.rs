@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tempfile::tempdir;
 
-const BEGIN: &str = "-- >>> omablade bindings >>>";
+const ROLE: &str = "omablade _backend roles-set --role bindings --on";
 
 struct Setup {
     home: PathBuf,
@@ -13,7 +13,6 @@ struct Setup {
 }
 
 fn setup(root: &Path) -> Setup {
-    let repo = Path::new(env!("CARGO_MANIFEST_DIR"));
     let home = root.join("home");
     let bin = root.join("fake-bin");
     let log = root.join("calls.log");
@@ -25,21 +24,12 @@ fn setup(root: &Path) -> Setup {
     )
     .unwrap();
     let omarchy = format!(
-        "#!/bin/sh\necho \"omarchy $*\" >> '{log}'\nif [ \"$1 $2\" = \"plugin add\" ]; then\n  mkdir -p \"$HOME/.config/omarchy/plugins/mash2rafi.omablade/examples\"\n  cp '{repo}/examples/omablade-bindings.lua' \"$HOME/.config/omarchy/plugins/mash2rafi.omablade/examples/\"\n  printf '#!/bin/sh\\n' > \"$HOME/.config/omarchy/plugins/mash2rafi.omablade/omablade\"\nfi\n",
+        "#!/bin/sh\necho \"omarchy $*\" >> '{log}'\nif [ \"$1 $2\" = \"plugin add\" ]; then\n  plugin=\"$HOME/.config/omarchy/plugins/mash2rafi.omablade\"\n  mkdir -p \"$plugin\"\n  printf '#!/bin/sh\\necho \"omablade $*\" >> \"%s\"\\n' '{log}' > \"$plugin/omablade\"\n  chmod +x \"$plugin/omablade\"\nfi\n",
         log = log.display(),
-        repo = repo.display()
     );
-    for (name, body) in [
-        ("omarchy", omarchy),
-        (
-            "hyprctl",
-            format!("#!/bin/sh\necho \"hyprctl $*\" >> '{}'\n", log.display()),
-        ),
-    ] {
-        let path = bin.join(name);
-        fs::write(&path, body).unwrap();
-        fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
-    }
+    let path = bin.join("omarchy");
+    fs::write(&path, omarchy).unwrap();
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
     Setup { home, log, bin }
 }
 
@@ -69,17 +59,22 @@ fn bindings(setup: &Setup) -> String {
 }
 
 #[test]
-fn one_run_installs_enables_links_and_binds_and_a_second_run_changes_nothing_twice() {
+fn one_run_installs_enables_links_and_turns_on_the_bindings_role() {
     let temporary = tempdir().unwrap();
     let setup = setup(temporary.path());
+    let before = bindings(&setup);
     let (ok, out) = run(&setup, &[]);
     assert!(ok, "{out}");
+    let log = calls(&setup);
     assert!(
-        calls(&setup).contains(
-            "omarchy plugin add https://github.com/MASH2RAFI/omablade.git --enable --yes"
-        ),
-        "{}",
-        calls(&setup)
+        log.contains("omarchy plugin add https://github.com/MASH2RAFI/omablade.git --enable --yes"),
+        "{log}"
+    );
+    assert!(log.contains(ROLE), "{log}");
+    assert_eq!(
+        bindings(&setup),
+        before,
+        "the script leaves bindings.lua to the reversible role"
     );
     let link = setup.home.join(".local/bin/omablade");
     assert_eq!(
@@ -88,52 +83,34 @@ fn one_run_installs_enables_links_and_binds_and_a_second_run_changes_nothing_twi
             .home
             .join(".config/omarchy/plugins/mash2rafi.omablade/omablade")
     );
-    let first = bindings(&setup);
-    assert!(
-        first.starts_with("o.bind(\"SUPER + RETURN\""),
-        "the user's own bindings stay first"
-    );
-    assert_eq!(first.matches(BEGIN).count(), 1);
-    assert!(first.contains("toggleBladeFocus left"));
-    assert!(calls(&setup).contains("hyprctl reload"));
 
     let (ok, out) = run(&setup, &[]);
     assert!(ok, "{out}");
     assert!(out.contains("not a git checkout"), "{out}");
-    let second = bindings(&setup);
-    assert_eq!(second.matches(BEGIN).count(), 1, "{second}");
-    assert_eq!(second, first);
     assert!(calls(&setup).contains("omarchy plugin enable mash2rafi.omablade"));
-    let backups = fs::read_dir(setup.home.join(".config/hypr"))
-        .unwrap()
-        .flatten()
-        .filter(|entry| entry.file_name().to_string_lossy().contains("bak-omablade"))
-        .count();
-    assert!(backups >= 1);
 }
 
 #[test]
-fn existing_omablade_bindings_are_kept_unless_forced_and_no_bindings_touches_nothing() {
+fn existing_omablade_bindings_are_kept_unless_forced_and_no_bindings_skips_the_role() {
     let temporary = tempdir().unwrap();
     let setup = setup(temporary.path());
     let own = "o.bind(\"SUPER + SHIFT + F\", \"Blade\", \"omarchy-shell mash2rafi.omablade.control toggleBladeFocus left\")\n";
     fs::write(setup.home.join(".config/hypr/bindings.lua"), own).unwrap();
     let (ok, out) = run(&setup, &[]);
     assert!(ok, "{out}");
-    assert_eq!(bindings(&setup), own);
     assert!(out.contains("keeping your bindings"), "{out}");
+    assert!(!calls(&setup).contains(ROLE));
 
     let (ok, out) = run(&setup, &["--force-bindings"]);
     assert!(ok, "{out}");
-    assert!(bindings(&setup).starts_with(own));
-    assert_eq!(bindings(&setup).matches(BEGIN).count(), 1);
+    assert!(calls(&setup).contains(ROLE));
+    assert_eq!(bindings(&setup), own);
 
-    let untouched = tempdir().unwrap();
-    let quiet = self::setup(untouched.path());
-    let before = bindings(&quiet);
+    let quiet_root = tempdir().unwrap();
+    let quiet = self::setup(quiet_root.path());
     let (ok, out) = run(&quiet, &["--no-bindings"]);
     assert!(ok, "{out}");
-    assert_eq!(bindings(&quiet), before);
+    assert!(!calls(&quiet).contains(ROLE));
 }
 
 #[test]

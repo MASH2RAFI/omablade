@@ -10,11 +10,17 @@ curl -fsSL https://raw.githubusercontent.com/MASH2RAFI/omablade/main/tools/plugi
 
 `tools/plugin-setup` adds and enables the plugin (or updates a git install),
 disables the FileBlade plugin if it is installed, links the `omablade` command
-into `~/.local/bin`, and adds the blade keybindings from
-`examples/omablade-bindings.lua` to `~/.config/hypr/bindings.lua` between
-`-- >>> omablade bindings >>>` markers, keeping a backup. Running it again
-refreshes that block instead of adding another, and bindings that already call
-Omablade are left alone. Pass options after `bash -s --`: `--dry-run` shows what
+into `~/.local/bin`, and turns on Omablade's reversible Hyprland bindings role,
+unless `~/.config/hypr/bindings.lua` already calls Omablade. Running it again
+is safe.
+
+The plugin also adds its keys by itself: the first time it starts it turns on
+the same role, which writes `~/.config/hypr/omablade-bindings.lua` and one
+`dofile` line in `bindings.lua`, links `~/.local/bin/omablade` if that command
+is missing, and says so in the Files pane. Bindings that already mention
+Omablade or FileBlade are left alone, and the choice is made once; turn the keys
+on or off later in Settings → Desktop integration → Hyprland bindings (see
+[keybindings](../../docs/agent-written/keybindings.md#hyprland-bindings)). Pass options after `bash -s --`: `--dry-run` shows what
 would change, `--no-bindings` leaves `bindings.lua` untouched,
 `--force-bindings` adds the defaults anyway, and `--keep-fileblade` leaves
 FileBlade enabled. `tests/plugin_setup.rs` runs the script against stand-in
@@ -31,9 +37,8 @@ omarchy plugin update mash2rafi.omablade
 omarchy plugin remove mash2rafi.omablade
 ```
 
-Omarchy never runs plugin code while installing, so without the setup script
-linking the `omablade` command and pasting `examples/omablade-bindings.lua`
-into `~/.config/hypr/bindings.lua` are manual steps.
+Omarchy never runs plugin code while installing, so the keys arrive when the
+plugin first starts rather than during `omarchy plugin add`.
 
 Demonstration: The plugin installs disabled-then-enabled, its blades open, and
 `omarchy plugin list` shows it.

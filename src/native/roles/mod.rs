@@ -59,7 +59,7 @@ impl Role {
         let data = crate::paths::xdg_home("XDG_DATA_HOME", "~/.local/share");
         match self {
             Role::Autostart => autostart::plan(launcher, &config),
-            Role::Bindings => bindings::plan(&config),
+            Role::Bindings => bindings::plan(launcher, &config),
             Role::Chooser => chooser::plan(launcher, &config, &data),
             Role::Folder => folder::plan(launcher, &config, &data),
             Role::Reveal => reveal::plan(launcher, &data),

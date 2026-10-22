@@ -20,17 +20,19 @@ Column {
     { role: "bindings", glyph: "󰌌", label: "Hyprland bindings", detail: "Adds omablade-bindings.lua to your Hyprland bindings" },
     { role: "autostart", glyph: "󰐥", label: "Start at login", detail: "Adds an autostart entry for Omablade" }
   ]
-  readonly property int enabledCount: rows.filter(function(row) { return roleOn(row.role) }).length
-  readonly property string keywords: "desktop integration folder reveal chooser bindings autostart login " + rows.map(function(row) { return row.label }).join(" ")
+  readonly property var shownRows: nativeApp ? rows : rows.filter(function(row) { return row.role === "bindings" })
+  readonly property int enabledCount: shownRows.filter(function(row) { return roleOn(row.role) }).length
+  readonly property string keywords: (nativeApp ? "desktop integration folder reveal chooser bindings autostart login " : "desktop integration bindings keys shortcuts hyprland ")
+    + shownRows.map(function(row) { return row.label }).join(" ")
 
-  visible: nativeApp
+  visible: !!host
   spacing: Style.space(5)
 
   onActiveChanged: if (active) refresh()
   Component.onCompleted: if (active) refresh()
 
   function refresh() {
-    if (!nativeApp) return
+    if (!host) return
     host.rolesStatus(function(response) {
       section.roles = response && response.roles ? response.roles : {}
       if (response && response.error) section.results = { "*": String(response.error) }
@@ -43,7 +45,7 @@ Column {
   }
 
   function toggle(role) {
-    if (!nativeApp) return
+    if (!host) return
     var on = !roleOn(role)
     host.setRole(role, on, function(response) {
       var next = {}
@@ -72,7 +74,7 @@ Column {
   }
 
   Repeater {
-    model: section.rows
+    model: section.shownRows
 
     delegate: Column {
       id: rowColumn
