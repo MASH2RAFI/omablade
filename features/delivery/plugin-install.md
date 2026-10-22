@@ -17,8 +17,10 @@ is safe.
 The plugin also adds its keys by itself: the first time it starts it turns on
 the same role, which writes `~/.config/hypr/omablade-bindings.lua` and one
 `dofile` line in `bindings.lua`, links `~/.local/bin/omablade` if that command
-is missing, and says so in the Files pane. Bindings that already mention
-Omablade or FileBlade are left alone, and the choice is made once; turn the keys
+is missing, and says so in the Files pane. Bindings written for FileBlade
+are pointed at Omablade (only the `data-goblin.fileblade.control` target is
+rewritten, with a backup), other bindings that mention Omablade are left alone,
+and the choice is made once; turn the keys
 on or off later in Settings → Desktop integration → Hyprland bindings (see
 [keybindings](../../docs/agent-written/keybindings.md#hyprland-bindings)). Pass options after `bash -s --`: `--dry-run` shows what
 would change, `--no-bindings` leaves `bindings.lua` untouched,

@@ -125,6 +125,7 @@ pub enum BackendCommand {
     Launch(LaunchArgs),
     RolesStatus,
     RolesSet(RolesSetArgs),
+    BindingsMigrate,
 }
 
 pub fn parse<I, T>(arguments: I) -> Result<BackendCommand, clap::Error>
@@ -181,6 +182,7 @@ pub fn mutating(command: &BackendCommand) -> bool {
             | BackendCommand::Visit(_)
             | BackendCommand::Recover
             | BackendCommand::RolesSet(_)
+            | BackendCommand::BindingsMigrate
     )
 }
 
@@ -427,6 +429,7 @@ fn dispatch_command(
         }
         BackendCommand::Capacity(options) => crate::capacity::probe(&options.path)?,
         BackendCommand::RolesStatus => crate::native::roles::status_document()?,
+        BackendCommand::BindingsMigrate => crate::native::roles::migrate_legacy_bindings()?,
         BackendCommand::RolesSet(options) => {
             crate::native::roles::set_document(&options.role, options.on)?
         }

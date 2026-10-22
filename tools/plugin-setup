@@ -16,7 +16,8 @@ Usage: plugin-setup [--dry-run] [--no-bindings] [--force-bindings] [--keep-fileb
 
 Installs or updates Omablade as an Omarchy plugin, enables it, links the
 omablade command into ~/.local/bin and adds the blade keybindings to
-~/.config/hypr/bindings.lua. Running it again is safe.
+~/.config/hypr/bindings.lua, or points FileBlade-era keybindings at Omablade.
+Running it again is safe.
 
   --dry-run         print what would change and change nothing
   --no-bindings     leave ~/.config/hypr/bindings.lua alone
@@ -82,6 +83,9 @@ if ((add_bindings)); then
   step "Keybindings"
   if [[ ! -f $bindings ]]; then
     say "    $bindings not found; turn on Settings → Desktop integration → Hyprland bindings once it exists"
+  elif grep -qF -- 'data-goblin.fileblade.control' "$bindings"; then
+    say "    pointing your FileBlade keys at Omablade (a backup of bindings.lua is kept)"
+    run "$plugin/omablade" _backend bindings-migrate
   elif ((!force_bindings)) && grep -qiE -- 'omablade|fileblade' "$bindings"; then
     say "    $bindings already calls Omablade; keeping your bindings (use --force-bindings to add the defaults)"
   else

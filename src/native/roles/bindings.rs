@@ -50,3 +50,39 @@ pub fn after() -> String {
         Err(error) => format!("hyprctl reload failed: {error}"),
     }
 }
+
+const LEGACY_TARGET: &str = "data-goblin.fileblade.control";
+const TARGET: &str = "mash2rafi.omablade.control";
+
+pub fn migrate_legacy(config: &Path) -> crate::AppResult<serde_json::Value> {
+    let link = config.join("hypr/bindings.lua");
+    let path = match std::fs::canonicalize(&link) {
+        Ok(path) => path,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(serde_json::json!({"ok": true, "migrated": 0, "path": link}));
+        }
+        Err(error) => return Err(error.into()),
+    };
+    let text = std::fs::read_to_string(&path)?;
+    let count = text.matches(LEGACY_TARGET).count();
+    if count == 0 {
+        return Ok(serde_json::json!({"ok": true, "migrated": 0, "path": path}));
+    }
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|elapsed| elapsed.as_secs())
+        .unwrap_or(0);
+    let backup = path.with_file_name(format!("bindings.lua.bak-omablade-{stamp}"));
+    std::fs::copy(&path, &backup)?;
+    let staged = path.with_file_name(format!(".bindings.lua.omablade-{stamp}"));
+    std::fs::write(&staged, text.replace(LEGACY_TARGET, TARGET))?;
+    std::fs::set_permissions(&staged, std::fs::metadata(&path)?.permissions())?;
+    std::fs::rename(&staged, &path)?;
+    Ok(serde_json::json!({
+        "ok": true,
+        "migrated": count,
+        "path": path,
+        "backup": backup,
+        "reload_error": after(),
+    }))
+}

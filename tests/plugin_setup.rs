@@ -166,3 +166,22 @@ fn unknown_options_are_refused() {
     assert!(out.contains("unknown option"), "{out}");
     assert!(calls(&setup).is_empty());
 }
+
+#[test]
+fn fileblade_era_bindings_are_migrated_instead_of_replaced() {
+    let temporary = tempdir().unwrap();
+    let setup = setup(temporary.path());
+    fs::write(
+        setup.home.join(".config/hypr/bindings.lua"),
+        "local call = \"OMARCHY_SHELL_IPC_TIMEOUT=0.4s omarchy-shell data-goblin.fileblade.control \" .. method\n",
+    )
+    .unwrap();
+    let (ok, out) = run(&setup, &[]);
+    assert!(ok, "{out}");
+    assert!(
+        calls(&setup).contains("omablade _backend bindings-migrate"),
+        "{}",
+        calls(&setup)
+    );
+    assert!(!calls(&setup).contains(ROLE));
+}

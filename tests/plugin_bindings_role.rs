@@ -108,3 +108,62 @@ fn an_existing_command_is_never_replaced_by_the_plugin_link() {
         "#!/bin/sh\necho mine\n"
     );
 }
+
+#[test]
+fn fileblade_bindings_are_pointed_at_omablade_through_a_symlink_with_a_backup() {
+    let temporary = tempdir().unwrap();
+    let home = temporary.path().join("home");
+    let dots = temporary.path().join("dotfiles");
+    fs::create_dir_all(home.join(".config/hypr")).unwrap();
+    fs::create_dir_all(&dots).unwrap();
+    let original = "local function fileblade(method)\n  return \"OMARCHY_SHELL_IPC_TIMEOUT=0.4s omarchy-shell data-goblin.fileblade.control \" .. method\nend\no.bind(\"SUPER + SHIFT + F\", \"Open or close the left blade\", fileblade(\"toggleBladeFocus left\"))\n";
+    fs::write(dots.join("bindings.lua"), original).unwrap();
+    std::os::unix::fs::symlink(
+        dots.join("bindings.lua"),
+        home.join(".config/hypr/bindings.lua"),
+    )
+    .unwrap();
+    let root = plugin_root(&home);
+    let migrate = |home: &Path| -> Value {
+        let output = Command::new(env!("CARGO_BIN_EXE_omablade"))
+            .args(["_backend", "bindings-migrate", "-o", "json"])
+            .env_clear()
+            .env("PATH", "/usr/bin:/bin")
+            .env("HOME", home)
+            .env("XDG_CONFIG_HOME", home.join(".config"))
+            .env("OMABLADE_APP_ROOT", &root)
+            .output()
+            .unwrap();
+        serde_json::from_slice(&output.stdout).unwrap()
+    };
+    let first = migrate(&home);
+    assert_eq!(first["migrated"], 1, "{first}");
+    assert!(
+        fs::symlink_metadata(home.join(".config/hypr/bindings.lua"))
+            .unwrap()
+            .file_type()
+            .is_symlink()
+    );
+    let migrated = fs::read_to_string(dots.join("bindings.lua")).unwrap();
+    assert_eq!(
+        migrated,
+        original.replace(
+            "data-goblin.fileblade.control",
+            "mash2rafi.omablade.control"
+        )
+    );
+    let backups: Vec<_> = fs::read_dir(&dots)
+        .unwrap()
+        .flatten()
+        .filter(|entry| {
+            entry
+                .file_name()
+                .to_string_lossy()
+                .starts_with("bindings.lua.bak-omablade-")
+        })
+        .collect();
+    assert_eq!(backups.len(), 1);
+    assert_eq!(fs::read_to_string(backups[0].path()).unwrap(), original);
+    let second = migrate(&home);
+    assert_eq!(second["migrated"], 0, "{second}");
+}

@@ -19,6 +19,10 @@ mod reveal;
 
 const AUTHORITY_TIMEOUT: Duration = Duration::from_secs(60);
 
+pub fn migrate_legacy_bindings() -> AppResult<Value> {
+    bindings::migrate_legacy(&crate::paths::xdg_home("XDG_CONFIG_HOME", "~/.config"))
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
 pub enum Role {
     Autostart,

@@ -84,8 +84,11 @@ Ids never get reused. When behaviour changes, edit the entry in place.
     starts it adds its Hyprland keys without me pasting anything: `Super+B`
     and `Super+Shift+B` open the blades, the Files pane says it added them, and
     `~/.config/hypr/bindings.lua` gains one `dofile` line marked
-    `-- omablade desktop role`. If my bindings already mention Omablade or
-    FileBlade, nothing is changed. Settings → Desktop integration shows a
+    `-- omablade desktop role`. If my bindings were written for FileBlade
+    (they call `data-goblin.fileblade.control`), they keep their keys and now
+    control Omablade, with a backup of `bindings.lua` next to it, even if an
+    earlier Omablade had already left them alone. If they already call
+    Omablade, nothing is changed. Settings → Desktop integration shows a
     Hyprland bindings switch in a plugin too; turning it off restores my file
     exactly and Omablade never re-adds the keys on its own.
 

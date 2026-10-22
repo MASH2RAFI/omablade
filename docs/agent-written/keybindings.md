@@ -139,8 +139,15 @@ it off restores both files byte for byte.
 
 A plugin install turns the role on by itself the first time it starts, unless
 `bindings.lua` is missing or already mentions Omablade or FileBlade (your own
-bindings win). It records that decision in `state.json` as `bindingsSetup`
-(`added`, `kept`, `skipped` or `failed`) and never asks again, so switching the
+bindings win). Bindings written for FileBlade still call its IPC target,
+`data-goblin.fileblade.control`, which no longer exists once Omablade replaces
+it; those are migrated instead: `omablade _backend bindings-migrate` rewrites
+only that target to `mash2rafi.omablade.control`, keeping your keys, writes
+through a symlinked `bindings.lua` to the real file, keeps a
+`bindings.lua.bak-omablade-<time>` copy beside it and reloads Hyprland. A home
+recorded as `kept` is re-checked once per start for that old target. The
+decision is stored in `state.json` as `bindingsSetup` (`added`, `migrated`,
+`kept`, `skipped` or `failed`); default keys are never added afterwards, so switching the
 keys off in Settings → Desktop integration → Hyprland bindings stays off. For
 a plugin the role links `~/.local/bin/omablade` to the plugin's launcher when
 that command does not exist yet; an existing command is never replaced, and a

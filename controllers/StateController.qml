@@ -633,7 +633,7 @@ Item {
     showHidden = service.boolValue(state.showHidden, base.showHidden)
     welcomeState = typeof state.welcomeState === "string" && ["dismissed", "installed"].indexOf(state.welcomeState) >= 0 ? state.welcomeState : ""
     welcomeVersion = typeof state.welcomeVersion === "string" ? service.boundedVersion(state.welcomeVersion) : ""
-    bindingsSetup = ["added", "kept", "skipped", "failed"].indexOf(state.bindingsSetup) >= 0 ? state.bindingsSetup : ""
+    bindingsSetup = ["added", "migrated", "kept", "skipped", "failed"].indexOf(state.bindingsSetup) >= 0 ? state.bindingsSetup : ""
     searchCaseSensitive = service.boolValue(state.searchCaseSensitive, false)
     searchRegex = service.boolValue(state.searchRegex, false)
     searchTreeLayout = service.boolValue(state.searchTreeLayout, false)
@@ -768,7 +768,7 @@ Item {
 
   function setBindingsSetup(value) {
     var next = String(value || "")
-    if (["", "added", "kept", "skipped", "failed"].indexOf(next) < 0 || next === bindingsSetup) return bindingsSetup
+    if (["", "added", "migrated", "kept", "skipped", "failed"].indexOf(next) < 0 || next === bindingsSetup) return bindingsSetup
     bindingsSetup = next
     save()
     return bindingsSetup

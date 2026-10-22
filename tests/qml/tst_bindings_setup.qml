@@ -96,8 +96,39 @@ TestCase {
     wait(20)
     compare(requests.length, 0)
     fakeService.bladeHost = { nativeApp: false }
-    fakeService.bindingsSetup = "kept"
+    fakeService.bindingsSetup = "added"
     wait(20)
     compare(requests.length, 0)
+  }
+
+  function test_dead_fileblade_bindings_are_pointed_at_omablade() {
+    start()
+    answer(0, { ok: true, text: "local call = \"omarchy-shell data-goblin.fileblade.control \" .. method\n" })
+    compare(requests.length, 2)
+    compare(requests[1].command, "bindings-migrate")
+    answer(1, { ok: true, migrated: 1, backup: "/home/fixture/.config/hypr/bindings.lua.bak-omablade-1" })
+    compare(fakeService.bindingsSetup, "migrated")
+    verify(fakeService.operationNotice.indexOf("FileBlade keys now control Omablade") >= 0)
+  }
+
+  function test_a_home_kept_earlier_is_rechecked_once_for_fileblade_targets() {
+    fakeService.bindingsSetup = "kept"
+    var controller = start()
+    answer(0, { ok: true, text: "omarchy-shell data-goblin.fileblade.control toggleBladeFocus left\n" })
+    compare(requests[1].command, "bindings-migrate")
+    answer(1, { ok: true, migrated: 1 })
+    compare(fakeService.bindingsSetup, "migrated")
+  }
+
+  function test_a_kept_home_without_fileblade_targets_is_only_read() {
+    fakeService.bindingsSetup = "kept"
+    start()
+    answer(0, { ok: true, text: "o.bind(\"SUPER + RETURN\", \"Terminal\", {})\n" })
+    compare(requests.length, 1, "no default keys are added over a home that kept its own")
+    compare(fakeService.bindingsSetup, "kept")
+    fakeService.backendReady = false
+    fakeService.backendReady = true
+    wait(20)
+    compare(requests.length, 1, "the re-check happens once per start")
   }
 }

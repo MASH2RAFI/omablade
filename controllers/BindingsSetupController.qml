@@ -7,8 +7,9 @@ QtObject {
   required property var service
   property bool running: false
   readonly property bool pluginMode: !!service && !!service.bladeHost && service.bladeHost.nativeApp !== true
-  readonly property bool due: pluginMode && service.backendReady && service.stateReady
-    && service.bindingsSetup === "" && !running
+  property bool rechecked: false
+  readonly property bool due: pluginMode && service.backendReady && service.stateReady && !running
+    && (service.bindingsSetup === "" || (service.bindingsSetup === "kept" && !rechecked))
   readonly property string bindingsPath: {
     var config = String(Quickshell.env("XDG_CONFIG_HOME") || "")
     return (config.charAt(0) === "/" ? config : service.home + "/.config") + "/hypr/bindings.lua"
@@ -20,14 +21,30 @@ QtObject {
 
   function run() {
     if (!due) return
+    var recheck = service.bindingsSetup === "kept"
+    rechecked = true
     running = true
     service.backendRequest("read-text", ["--path", bindingsPath, "--limit", "1048576"], 0, function(response) {
+      if (recheck && (!response || response.ok !== true)) {
+        setup.finish("kept", "")
+        return
+      }
       if (!response || response.ok !== true) {
         setup.finish(response && response.missing ? "skipped" : "failed",
           response && response.missing ? "" : "Could not read " + setup.bindingsPath + ": " + String(response && response.error || "no answer"))
         return
       }
-      if (/omablade|fileblade/i.test(String(response.text || ""))) {
+      var text = String(response.text || "")
+      if (text.indexOf("data-goblin.fileblade.control") >= 0) {
+        service.backendRequest("bindings-migrate", [], 0, function(answer) {
+          if (answer && answer.ok === true && Number(answer.migrated) > 0)
+            setup.finish("migrated", "Your FileBlade keys now control Omablade (a backup of bindings.lua was kept)")
+          else setup.finish("failed", "Could not update your FileBlade keys for Omablade: "
+            + String(answer && answer.error || "no answer from the backend"))
+        })
+        return
+      }
+      if (recheck || /omablade|fileblade/i.test(text)) {
         setup.finish("kept", "")
         return
       }
