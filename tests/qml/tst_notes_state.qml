@@ -11,10 +11,6 @@ TestCase {
     return out
   }
 
-  function local(text, revision, dirty, saving) {
-    return { text: text, revision: revision, dirty: !!dirty, saving: !!saving }
-  }
-
   function test_utf8_length() {
     compare(NotesState.utf8Length(""), 0)
     compare(NotesState.utf8Length("abc"), 3)
@@ -77,63 +73,6 @@ TestCase {
     compare(NotesState.normalize("x", 7.9).revision, 7)
   }
 
-  function test_hydration_skips_while_dirty() {
-    var decision = NotesState.hydration({ text: "old", revision: 9 }, local("typed", 2, true, false))
-    compare(decision.action, "skip")
-    compare(decision.reason, "local edit pending")
-  }
-
-  function test_hydration_skips_while_saving() {
-    var decision = NotesState.hydration({ text: "old", revision: 9 }, local("typed", 2, false, true))
-    compare(decision.action, "skip")
-  }
-
-  function test_hydration_skips_stale_revision() {
-    var decision = NotesState.hydration({ text: "old", revision: 1 }, local("current", 4, false, false))
-    compare(decision.action, "skip")
-    compare(decision.reason, "stale revision")
-  }
-
-  function test_hydration_applies_newer_revision() {
-    var decision = NotesState.hydration({ text: "fresh", revision: 5 }, local("current", 4, false, false))
-    compare(decision.action, "apply")
-  }
-
-  function test_hydration_skips_identical_echo() {
-    var decision = NotesState.hydration({ text: "same", revision: 4 }, local("same", 4, false, false))
-    compare(decision.action, "skip")
-    compare(decision.reason, "unchanged")
-  }
-
-  function test_persist_plan_bumps_revision() {
-    var plan = NotesState.persistPlan("note", 7, false)
-    compare(plan.action, "write")
-    compare(plan.revision, 8)
-    compare(plan.text, "note")
-    compare(plan.clamped, false)
-  }
-
-  function test_persist_plan_clamps_oversize_input() {
-    var plan = NotesState.persistPlan(repeated("a", 70000), 1, false)
-    compare(plan.action, "write")
-    compare(plan.clamped, true)
-    compare(plan.bytes, NotesState.CAP_BYTES)
-    verify(NotesState.utf8Length(plan.text) <= NotesState.CAP_BYTES)
-  }
-
-  function test_persist_plan_holds_when_migrating_oversize_note() {
-    var plan = NotesState.persistPlan(repeated("a", 70000), 3, true)
-    compare(plan.action, "hold")
-    compare(plan.revision, 3)
-  }
-
-  function test_oversize_note_resumes_after_trim() {
-    var plan = NotesState.persistPlan("trimmed", 3, true)
-    compare(plan.action, "write")
-    compare(plan.text, "trimmed")
-    compare(plan.revision, 4)
-  }
-
   function test_status_text_states() {
     compare(NotesState.statusText(12, false, false, false, false), "12 bytes")
     compare(NotesState.statusText(12, false, false, true, false), "saving")
@@ -145,10 +84,12 @@ TestCase {
 
   function test_round_trip_is_stable() {
     var text = "line one\nline two"
-    var plan = NotesState.persistPlan(text, 0, false)
-    var incoming = NotesState.normalize(plan.text, plan.revision)
+    var incoming = NotesState.normalize(text, 3)
     compare(incoming.text, text)
-    compare(NotesState.hydration(incoming, local(plan.text, plan.revision, false, false)).action, "skip")
+    compare(incoming.revision, 3)
+    var again = NotesState.normalize({ text: incoming.text, revision: incoming.revision })
+    compare(again.text, text)
+    compare(again.revision, 3)
   }
 
   function test_legacy_note_migrates_into_a_named_notebook() {

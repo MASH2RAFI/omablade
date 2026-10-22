@@ -612,13 +612,6 @@ Item {
     return true
   }
 
-  function normalizedTrashRetentionDays(value) {
-    var days = Number(value)
-    if (!isFinite(days)) return 0
-    return Math.max(0, Math.min(3650, Math.round(days)))
-  }
-
-
   function normalizedTrashTimestamp(value) {
     var timestamp = Number(value)
     return isFinite(timestamp) && timestamp > 0 ? Math.floor(timestamp) : 0

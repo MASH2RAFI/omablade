@@ -6,7 +6,7 @@ pub mod store;
 use crate::core_modules::Context;
 use crate::module_helpers::Request;
 use crate::{AppError, AppResult};
-use serde_json::{Map, Value, json};
+use serde_json::{Map, Value};
 use store::Environment;
 
 pub use query::UNAVAILABLE;
@@ -103,13 +103,4 @@ pub fn handler(method: &str) -> Option<crate::core_modules::CoreHandler> {
         "usage-forget" => Some(mcp_forget),
         _ => None,
     }
-}
-
-pub fn unavailable_document(kind: &str) -> Value {
-    json!({
-        "ok": false,
-        "schemaVersion": query::SCHEMA_VERSION,
-        "kind": kind,
-        "error": UNAVAILABLE,
-    })
 }

@@ -95,6 +95,18 @@ fn module_text(root: &Path, module: &str) -> String {
 }
 
 #[test]
+fn general_settings_offer_the_manage_agent_files_switch_the_help_names() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let settings = text(&root.join("blades/BladeSettings.qml"));
+    assert!(settings.contains("label: \"Manage agent files\""));
+    assert!(settings.contains(
+        "preferences.setAgentManagement(!root.host.service.preferences.agentManagement)"
+    ));
+    let welcome = text(&root.join("modules/welcome/WelcomePlan.js"));
+    assert!(welcome.contains("requires Manage agent files in General settings"));
+}
+
+#[test]
 fn no_list_view_uses_section_delegates_that_crash_quickshell_on_exit() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let tests = root.join("tests");
@@ -985,14 +997,7 @@ fn notes_module_is_bundled_and_bounded() {
     let state = text(&root.join("modules/notes/NotesState.js"));
     assert!(state.contains("var CAP_BYTES = 65536"));
     assert!(state.lines().next().unwrap().contains(".pragma library"));
-    for name in [
-        "utf8Length",
-        "clampToBytes",
-        "normalize",
-        "hydration",
-        "persistPlan",
-        "statusText",
-    ] {
+    for name in ["utf8Length", "clampToBytes", "normalize", "statusText"] {
         assert!(state.contains(&format!("function {name}(")), "{name}");
     }
     let module = text(&root.join("modules/notes/Module.qml"));
@@ -1714,7 +1719,7 @@ fn module_definitions_are_normalized_once_and_grouped_by_category() {
     assert!(state.contains("function resetSettings() {"));
     assert!(
         !state[state.find("function resetSettings() {").unwrap()..]
-            .split("function normalizedTrashRetentionDays")
+            .split("function normalizedTrashTimestamp")
             .next()
             .unwrap()
             .contains("favorites ="),

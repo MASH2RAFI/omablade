@@ -80,10 +80,6 @@ pub fn read_text(raw_path: &str, limit: usize) -> Value {
     }
 }
 
-pub fn content_type(raw_path: &str) -> String {
-    content_type_cancellable(raw_path, &AtomicBool::new(false))
-}
-
 pub fn content_type_cancellable(raw_path: &str, cancelled: &AtomicBool) -> String {
     let Ok(path) = parse_path(raw_path) else {
         return "application/octet-stream".to_string();

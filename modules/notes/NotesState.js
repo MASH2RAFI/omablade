@@ -65,28 +65,6 @@ function normalize(rawText, rawRevision) {
   return { text: text, revision: Math.floor(revision), bytes: utf8Length(text) }
 }
 
-function hydration(incoming, local) {
-  if (local.dirty) return { action: "skip", reason: "local edit pending" }
-  if (local.saving) return { action: "skip", reason: "write in flight" }
-  if (incoming.revision < local.revision) return { action: "skip", reason: "stale revision" }
-  if (incoming.revision === local.revision && incoming.text === local.text) return { action: "skip", reason: "unchanged" }
-  return { action: "apply", reason: "" }
-}
-
-function persistPlan(text, revision, overCap) {
-  if (overCap && utf8Length(text) > CAP_BYTES)
-    return { action: "hold", reason: "existing note exceeds the limit", text: text, revision: revision }
-  var clamped = clampToBytes(text, CAP_BYTES)
-  return {
-    action: "write",
-    reason: "",
-    text: clamped.text,
-    clamped: clamped.clamped,
-    bytes: clamped.bytes,
-    revision: Math.floor(Number(revision) || 0) + 1
-  }
-}
-
 function statusText(bytes, clamped, overCap, saving, saveFailed) {
   if (saveFailed) return "save rejected by host"
   if (overCap) return "over " + Math.round(CAP_BYTES / 1024) + " KiB, saving paused"

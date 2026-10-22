@@ -1,13 +1,5 @@
 use super::*;
 
-pub fn checkpoint_transfer(
-    kind: &str,
-    mapping: &TransferMapping,
-    entry_id: &str,
-) -> AppResult<String> {
-    record_transfer(kind, std::slice::from_ref(mapping), entry_id)
-}
-
 pub fn record_transfer(
     kind: &str,
     mappings: &[TransferMapping],

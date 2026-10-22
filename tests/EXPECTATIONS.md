@@ -576,6 +576,10 @@ Dialog keyboard regressions: `tests/vm/trash-dialog-focus.sh`.
      these in my Hyprland config or switch Omarchy theme, open blades follow
      within a moment without restarting Omablade. A blade turned into a window
      is decorated by Hyprland itself.
+147f. **E-17-17** General settings has a Manage agent files switch, the one the
+     Welcome help names. It stays off until I turn it on; once the choice is
+     saved, Skills and Memory let me change and remove files, and turning it off
+     makes them read-only again. Searching settings for "agent" finds it.
 
 ## 18. Persistence
 

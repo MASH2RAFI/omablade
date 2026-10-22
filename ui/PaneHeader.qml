@@ -27,7 +27,6 @@ Rectangle {
   property var titleActions: []
   signal titleTriggered(string key)
 
-  readonly property bool handleHovered: handle.containsMouse
   readonly property bool collapsible: context && context.host && context.slotIndex >= 0
   readonly property bool integrated: context && context.tabCount > 1
   readonly property bool identityVisible: showIdentity && !integrated

@@ -145,8 +145,6 @@ TestCase {
     compare(locations.count, 0)
     compare(requests[3].command, "location-disconnect")
     compare(requests[3].arguments, ["--location", "tailnet:peer", "--generation", "cleanup"])
-    controller.cancelPeerAction()
-    compare(cancellations[1], ["4", requests[3].generation])
     service.backendReady = false
     compare(controller.count, 0)
     requests[3].callback({ ok: true, location: descriptor("connected", "stale") })

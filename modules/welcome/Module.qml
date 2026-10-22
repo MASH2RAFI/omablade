@@ -24,18 +24,11 @@ FocusScope {
   readonly property var shortcuts: [
     { title: "Welcome", items: [{ shortcut: "Enter", text: "Open Files" }, { shortcut: "Esc", text: "Close Welcome" }] }
   ]
-  property var catalog: WelcomePlan.LOCAL_CATALOG
   property int helpIndex: 0
   property string error: ""
 
   function takeFocus(part) { module.forceActiveFocus() }
   function info(id) { return host && host.registry ? host.registry.module(id) : null }
-  function acceptCatalog(text) {
-    var next = WelcomePlan.catalog(text, context ? context.contractVersion : 0)
-    if (!next) return false
-    catalog = next
-    return true
-  }
   function openModule(id) {
     if (!info(id)) { error = "This blade is unavailable."; return false }
     var found = host.findModule(id)
@@ -231,27 +224,12 @@ FocusScope {
       PluginUi.SettingsGroup { title: "Extensions" }
       Text {
         width: parent.width
-        visible: module.catalog.entries.length === 0
         textFormat: Text.PlainText
-        text: "Extensions can add more blades. No optional extensions are listed here yet. Installed blades remain available from +."
+        text: "Extensions can add more blades. Installed blades are available from +."
         color: Commons.Color.muted
         wrapMode: Text.WordWrap
         font.family: Style.font.family
         font.pixelSize: Typography.bodySmall
-      }
-      Column {
-        width: parent.width
-        spacing: Style.space(2)
-        Repeater {
-          model: module.catalog.entries
-          delegate: Action {
-            required property var modelData
-            inline: true
-            text: modelData.name
-            detail: modelData.compatible ? modelData.lifecycle : "Needs newer host"
-            onClicked: module.openLink(modelData.source)
-          }
-        }
       }
       Text {
         width: parent.width

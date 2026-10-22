@@ -296,10 +296,7 @@ Item {
   property alias externalClipboardMime: operationController.externalMime
   property alias externalClipboardBusy: operationController.externalBusy
   property alias externalClipboardError: operationController.externalError
-  property alias pendingExternalPasteDestination: operationController.pendingExternalDestination
   property alias pendingExternalPasteOperationId: operationController.pendingExternalOperationId
-  property alias externalClipboardResponse: operationController.externalResponse
-  property alias externalClipboardDiscardResult: operationController.discardExternalResult
   readonly property bool externalClipboardReady: externalClipboardPaths.length > 0
   readonly property bool pasteReady: clipboardReady || externalClipboardReady
   readonly property int pasteCount: clipboardReady ? clipboardPaths.length : externalClipboardPaths.length
@@ -335,7 +332,6 @@ Item {
   property alias operationNotice: operationController.notice
   property alias operationQueue: operationController.queue
   property alias activeOperation: operationController.active
-  property alias activeOperationResponse: operationController.activeResponse
   readonly property var history: operationController
   property alias activeOperationProgress: operationController.progress
   property alias operationCancelRequested: operationController.cancelRequested
@@ -460,7 +456,6 @@ Item {
   property alias activeLocationOrigin: locationController.activeOrigin
   property alias pendingLocationPath: locationController.pendingPath
   property alias pendingLocationMode: locationController.pendingMode
-  property alias activeLocationResponse: locationController.activeResponse
   property alias locationValidationCount: locationController.validationCount
   property alias locationCancellationCount: locationController.cancellationCount
   property alias historyCurrentPruneCount: locationController.historyPruneCount

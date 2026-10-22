@@ -222,10 +222,6 @@ Item {
     }, null, 200000, { untimed: true })
   }
 
-  function cancelPeerAction() {
-    if (peerRequestId) service.cancelBackendRequest(peerRequestId, peerRequestSerial)
-  }
-
   function actionAvailableFor(source) { return !!peerLocations[String(source)] || actionsAvailable }
 
   function descriptorForPath(path) {

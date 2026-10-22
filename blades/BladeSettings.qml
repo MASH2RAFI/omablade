@@ -794,6 +794,17 @@ Item {
               onToggled: root.host.setAnimateBlades(!root.host.animateBlades)
             }
 
+            PluginUi.ToggleRow {
+              objectName: "manageAgentFiles"
+              width: parent.width
+              visible: general.managementShown
+              enabled: !!root.host.service && root.host.service.preferences.ready
+              glyph: "󰒓"
+              label: "Manage agent files"
+              checked: !!root.host.service && root.host.service.preferences.agentManagement
+              onToggled: root.host.service.preferences.setAgentManagement(!root.host.service.preferences.agentManagement)
+            }
+
             PluginUi.DropdownRow {
               width: parent.width
               visible: general.monitorsShown

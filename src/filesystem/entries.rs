@@ -1,9 +1,5 @@
 use super::*;
 
-pub fn entry_for(raw_path: &str, include_details: bool) -> io::Result<Value> {
-    entry_for_path(&parse_path(raw_path)?, include_details)
-}
-
 pub fn entry_for_path(path: &Path, include_details: bool) -> io::Result<Value> {
     entry_for_path_with_git(path, include_details, true)
 }

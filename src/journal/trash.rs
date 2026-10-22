@@ -12,41 +12,6 @@ pub fn trash_snapshot(paths: &[PathBuf]) -> TrashSnapshot {
     snapshot
 }
 
-pub fn trashed_items(paths: &[PathBuf], before: &TrashSnapshot) -> Vec<JournalItem> {
-    let mut origins = BTreeMap::new();
-    for (trash_dir, previous) in before {
-        for name in info_names(trash_dir).difference(previous) {
-            let origin = trashinfo_origin(trash_dir, name);
-            if origin.is_absolute() {
-                origins.insert(normalize_path(&origin), (trash_dir.clone(), name.clone()));
-            }
-        }
-    }
-    paths
-        .iter()
-        .filter_map(|path| {
-            let absolute = normalize_path(path);
-            let (trash_dir, name) = origins.get(&absolute)?;
-            let stored = trash_dir.join("files").join(name);
-            let name_text = name
-                .to_str()
-                .map(str::to_string)
-                .unwrap_or_else(|| path_text(&stored));
-            Some(JournalItem {
-                source: path_text(path),
-                target: String::new(),
-                is_dir: false,
-                trash_dir: path_text(trash_dir),
-                trash_name: name_text,
-                before_value: String::new(),
-                after_value: String::new(),
-                fingerprint: fingerprint(&stored),
-                unverified: false,
-            })
-        })
-        .collect()
-}
-
 pub(super) fn home_trash() -> PathBuf {
     std::env::var_os("XDG_DATA_HOME")
         .filter(|value| !value.is_empty())

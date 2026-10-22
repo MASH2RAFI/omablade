@@ -96,11 +96,6 @@ Item {
     columnsCommitted()
   }
 
-  function setMetric(key) {
-    var wanted = validMetric(key)
-    setColumns(wanted === "off" ? columns.slice(1) : [wanted].concat(columns.slice(1)))
-  }
-
   function setColumn(index, key) {
     var next = columns.slice()
     var wanted = validMetric(key)

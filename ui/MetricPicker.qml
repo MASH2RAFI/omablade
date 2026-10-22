@@ -27,7 +27,6 @@ Item {
   readonly property int sortRank: ownSort ? sorts.indexOf(ownSort) + 1 : 0
   readonly property bool filterActive: view ? view.filterActive : false
   readonly property bool sortedByCurrent: !!ownSort
-  readonly property bool popupOpen: popup.opened
   readonly property bool hovered: adder ? pointer.containsMouse : columnHover.hovered
   readonly property var rows: menuRows()
   readonly property bool opensUp: {

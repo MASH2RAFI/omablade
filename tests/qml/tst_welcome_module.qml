@@ -40,7 +40,6 @@ TestCase {
     host.opened = ""
     host.focused = ""
     mockWelcome.dismissed = false
-    view.catalog = {version: 1, entries: []}
     view.error = ""
   }
 
@@ -56,15 +55,4 @@ TestCase {
     verify(mockWelcome.dismissed)
   }
 
-  function test_bad_catalog_keeps_last_local_or_valid_metadata() {
-    verify(!view.acceptCatalog("offline"))
-    compare(view.catalog.entries.length, 0)
-    verify(view.acceptCatalog('{"version":1,"entries":[{"id":"example","name":"Example","source":"https://example.org/source","hostContract":4,"lifecycle":"on-demand","command":"never-run"}]}'))
-    verify(!view.catalog.entries[0].compatible)
-    verify(view.catalog.entries[0].command === undefined)
-    var before = JSON.stringify(view.catalog)
-    verify(!view.acceptCatalog('{"version":99,"entries":[]}'))
-    compare(JSON.stringify(view.catalog), before)
-    compare(view.title, "Welcome")
-  }
 }

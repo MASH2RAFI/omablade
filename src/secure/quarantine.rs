@@ -357,18 +357,6 @@ pub fn rename_noreplace_resolved(
     fsync(&destination.directory).map_err(io::Error::from)
 }
 
-pub fn relocate_noreplace(
-    source: &Path,
-    destination: &Path,
-    cancelled: &AtomicBool,
-    progress: &mut dyn FnMut(&Path),
-) -> io::Result<()> {
-    check_cancelled(cancelled)?;
-    let source = resolved_parent(source)?;
-    let destination = resolved_parent(destination)?;
-    quarantine_resolved(source)?.relocate_noreplace_to(&destination, cancelled, progress)
-}
-
 pub fn relocate_noreplace_matching(
     source: &Path,
     destination: &Path,

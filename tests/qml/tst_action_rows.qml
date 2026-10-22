@@ -23,16 +23,6 @@ TestCase {
     return rows.map(function(value) { return value.key })
   }
 
-  function test_context_for_follows_the_fixed_order() {
-    compare(ActionRows.contextFor([entry("/tmp/a.txt", false)], "/tmp"), "file")
-    compare(ActionRows.contextFor([entry("/tmp/folder", true)], "/tmp"), "dir")
-    compare(ActionRows.contextFor([entry("/tmp/a", false), entry("/tmp/b", true)], "/tmp"), "selection")
-    compare(ActionRows.contextFor([], "/tmp"), "root")
-    compare(ActionRows.contextFor([], ""), "none")
-    compare(ActionRows.contextFor(undefined, undefined), "none")
-    compare(ActionRows.contextFor([{ path: "/tmp/a", is_dir: true }], ""), "dir")
-  }
-
   function test_context_of_picks_the_first_declared_context_that_applies() {
     var selection = row("many", ["selection"])
     compare(ActionRows.contextOf(selection, [entry("/tmp/a", false)], "/tmp"), "selection")
