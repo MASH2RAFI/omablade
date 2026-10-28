@@ -1,6 +1,17 @@
 <p align="center"><img src="assets/omablade-logo.svg" alt="Omablade" width="640"></p>
 
-This file was written by an agent.
+<p align="center"><strong>IDE-like sidebars for Omarchy: files, Git status, notes and your coding agents, one keystroke away.</strong></p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Omarchy-4.0.2%2B-89b4fa?style=flat-square" alt="Omarchy 4.0.2+" />
+  <img src="https://img.shields.io/badge/Hyprland-plugin-7aa2f7?style=flat-square&logo=hyprland&logoColor=white" alt="Hyprland" />
+  <img src="https://img.shields.io/badge/Rust-backend-000000?style=flat-square&logo=rust&logoColor=white" alt="Rust" />
+  <img src="https://img.shields.io/badge/QML-Quickshell-41CD52?style=flat-square&logo=qt&logoColor=white" alt="QML / Quickshell" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="MIT license" /></a>
+  <img src="https://img.shields.io/badge/status-pre--release-orange?style=flat-square" alt="Pre-release" />
+</p>
+
+<p align="center"><img src="preview.png" alt="Omablade blades docked beside Hyprland windows" width="900"></p>
 
 > [!WARNING]
 > **Disclaimer.** Omablade is an unofficial community project. It is not made,
@@ -20,6 +31,26 @@ This file was written by an agent.
 - Extend it with your own panes and actions
 
 The [feature guides](features/index.md) cover each part in detail.
+
+## What it is
+
+Omablade is a native Omarchy application with left and right edge blades. A
+blade can stay docked as a layer surface or become an ordinary tiled Hyprland
+window. Each blade holds movable, resizable, tabbed module slots.
+
+- Files, Properties, Notes, Branches, Skills, Memory, Hooks and MCP are built in
+- The file-tree selection is shared with other modules and with your coding agents
+- Search: zoxide-like quick nav, fzf-like deep search, filters such as `type:`, and regex
+- File management: colors, undo/redo, cut/copy/paste, recents, home and Trash
+- Blades look like your Hyprland windows (rounding, borders, opacity, gaps)
+  and follow your Hyprland settings live
+- The `omablade` CLI exposes the same workflows to scripts and agents
+- Write your own panel with `omablade module new NAME --add right`, see edits
+  with `omablade module reload`, and install extensions with
+  `omablade extension install`
+
+Extensions load from Omablade's native extension directory; see
+[EXTENSIONS.md](EXTENSIONS.md).
 
 ## Installation
 
@@ -85,26 +116,6 @@ omablade native drain --timeout-ms 30000
 
 [CONTRIBUTING.md](CONTRIBUTING.md) covers tests and rebuilding the bundled
 backend.
-
-## What it is
-
-Omablade is a native Omarchy application with left and right edge blades. A
-blade can stay docked as a layer surface or become an ordinary tiled Hyprland
-window. Each blade holds movable, resizable, tabbed module slots.
-
-- Files, Properties, Notes, Branches, Skills, Memory, Hooks and MCP are built in
-- The file-tree selection is shared with other modules and with your coding agents
-- Search: zoxide-like quick nav, fzf-like deep search, filters such as `type:`, and regex
-- File management: colors, undo/redo, cut/copy/paste, recents, home and Trash
-- Blades look like your Hyprland windows (rounding, borders, opacity, gaps)
-  and follow your Hyprland settings live
-- The `omablade` CLI exposes the same workflows to scripts and agents
-- Write your own panel with `omablade module new NAME --add right`, see edits
-  with `omablade module reload`, and install extensions with
-  `omablade extension install`
-
-Extensions load from Omablade's native extension directory; see
-[EXTENSIONS.md](EXTENSIONS.md).
 
 ## How it changes your system
 
